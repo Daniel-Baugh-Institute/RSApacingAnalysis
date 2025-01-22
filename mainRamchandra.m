@@ -1,7 +1,14 @@
+%% LOCAL COPY
+
 clear; close all; restoredefaultpath;
+%%
+cd 'C:\Users\mmgee\OneDrive - University of Delaware - o365\Documents\Github\NZ-physiology-data'
 addpath(genpath('C:\Users\mmgee\AppData\Local\Temp\Mxt231\RemoteFiles'))
 addpath(genpath('C:\Users\mmgee\MATLAB\PhysioNet-Cardiovascular-Signal-Toolbox-eec46e75e0b95c379ecb68cb0ebee0c4c9f54605'))
+addpath(genpath('C:\Users\mmgee\MATLAB\mhrv-master'))
+addpath 'C:\Users\mmgee\OneDrive - University of Delaware - o365\Documents\Github\NZ-physiology-data'
 fileToRead1 = '1828 day 11 baseline.mat';
+%%
 readRamchandraData(fileToRead1)
 
 channelNum = [1 6];%[1 3 4 6];
@@ -30,14 +37,14 @@ for i = 1:n
     if strcmp(eval([structName '.title']), 'HR')
         RRintervals = diff(eval([structName '.times']));
         timeRR = eval([structName '.times'])/60./60; % hours
-        %%
+        %
         nexttile(n)
         stairs(timeRR(1:end-1),RRintervals)
         % xlim([5 5.05])
         xlabel('Time (hrs)')
         ylabel('RR interval (s)')
 
-        %%
+        
     else
         if length(timeRaw) ~= length(eval([structName '.values']))
             time = timeRaw(1:end-1)./60./60; % hours
@@ -70,10 +77,18 @@ end
 
 saveas(gcf,plotName)
 
+%% HRV analysis
+% mhrv_init()
+% % time domain analysis
+% [ hrv_td, plot_data_timeDomain ] = mhrv.hrv.hrv_time( RRintervals );
+% 
+% % frequency domain analysis
+% [ hrv_fd, pxx, f_axis, plot_data_freqDomain ] = mhrv.hrv.hrv_freq( RRintervals );
+
 %% reconstruct baroreflex curve from data
 % sequence method to get heart rate increases and decrecrease? If I recall,
 % this didn't work (see slides from 2/23/24 one on one)
-subjectID = '1828_day_11';
+subjectID = '1828_day_11_21-40';
 % valid_indices = 30000:1:40000;
 BPstruct = [prefix num2str(channelNum(1))];
 OnsetTimes = run_wabp(eval([BPstruct '.values']));
@@ -101,34 +116,178 @@ addpath('C:\Users\mmgee\OneDrive - University of Delaware - o365\Documents\Githu
 inFs = 1/Baseline_11_Ch1.interval;
 verbose = 1; % 1 if figures wanted
 
-[ footIndex, systolicIndex, notchIndex, dicroticIndex, time, bpwaveform ] = BP_annotate( Baseline_11_Ch1.values, inFs, verbose );
-% need to align systolic index to time (time(systolicIndex))
+% [ footIndex, systolicIndex, notchIndex, dicroticIndex, time, bpwaveform ] = BP_annotate( Baseline_11_Ch1.values, inFs, verbose );
+load BP_annotated.mat
+
+%% Signal cleaning: Remove time periods where SBP > 140 mm Hg and use RR from BP
+idx2rmRaw = find(bpwaveform(systolicIndex) > 500);
+rmWindowSize = 10; % seconds
+nonOverlapIdx = diff(idx2rmRaw) > rmWindowSize;
+idx2rm = idx2rmRaw(nonOverlapIdx);
+for i = length(idx2rm):-1:1
+    startRm = idx2rm(i) - rmWindowSize * inFs;
+    if startRm <= 0
+        startRm = 1;
+    end
+    stopRm = idx2rm(i) + rmWindowSize * inFs;
+    rmWindowIdx = startRm:1:stopRm;
+    systolicIndexClean = systolicIndex;
+    systolicIndexClean(rmWindowIdx) = [];
+end
+
+
+%% Check that RR intervals given match systolic BP peaks
+RRfromBP = diff(time(systolicIndex));
+% figure;
+% plot(RRfromBP(1:157425),diff(Baseline_11_Ch6.times),'o')
+% xlabel('RR interval from SBP (s)')
+% ylabel('Exp. RR interval (s)')
+% saveas(gcf,'plot_RRfromBPvsRR.png')
+
+% plot of RR intervals binned by SBP
+SBP = bpwaveform(systolicIndex);
+X = [RRfromBP', SBP(2:end)'];
+% plotBinnedRRvsSBP(X)
 %% sequence method
 systolicTime = time(systolicIndex);
 indices = matchSampleTimes(systolicTime, Baseline_11_Ch6.times);
 % then get RR intervals at those times:
 RR = RRintervals(indices(1:end-2));
-SBP = bpwaveform(systolicIndex);
+
 
 % RR = diff(r(:,1))./1000; % convert to s from ms
-X = [RR,SBP(1:end-2)']; % Matrix with two columns representing RR intervals and
+X = [RRfromBP',SBP(2:end)'];%[RR,SBP(1:end-2)']; % Matrix with two columns representing RR intervals and
 %   systolic blood pressure values
-% valid_indices = 1:1:10000;
-% % % bar plot of binned MAP values and average RR values
-% [valid_indices_linear,slope] = sequenceMethod(valid_indices,X,subjectID);
-% 
-% 
-% % plot mean up slopes binned and back calculate baroreflex curve
-% plotPositiveSlopes(valid_indices_linear, slope, X);
+% valid_indices_slice = 1:1:length(RRfromBP)/2;
+% length(RRfromBP)
 
+% Remove indices from valid_indices if RR < 0.01 or RR > 2
+% valid_indices_filtered = find(RRfromBP > 0.01 & RRfromBP < 2);
+
+
+valid_indices = IdUpSequences(X);
+% valid_indices = intersect(valid_indices,valid_indices_slice);
+
+
+
+%% bar plot of binned MAP values and average RR values
+[valid_indices_linear,slope] = sequenceMethod(valid_indices,X,subjectID);
+
+
+%% plot mean up slopes binned and back calculate baroreflex curve
+[A1,A2,A3,A4] = plotPositiveSlopes(valid_indices_linear, slope, X);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ % TODO change this function to remove outliers based on IQR
+
+ %% Plot points of HR and SBP pairs and find PDF. Plot potential energy surface to visualize attractors
+ var = [1];
+ for jj = 1:length(var)
+     xx = 0.18:0.02:1.3;%0.4:0.02:var(jj);% 0.2:0.01:1.54;% xx = 0:0.1:1;
+     yy = 80:2:174;%85:2:130;%90:1:118;% yy = 100:1:130;
+     [Xpts,Ypts] = meshgrid(xx,yy);
+     figure;
+     h=histogram2(X(:,1),X(:,2),xx,yy);
+
+     % Remove double counted peaks
+     lowRRidx = find(X(:,1)<0.1);
+     X_clean = X;
+     X_clean(lowRRidx,:) = [];
+
+     pts = [reshape(Xpts,numel(Xpts), []), reshape(Ypts, numel(Ypts), [])];
+     tt = 400; % number of heart beats for ~4-5 min period based on mean heart period of 0.6635 s
+     % start index for peak at 2.22e4 seconds: 35528
+     start = 35278;%35628;%35528;%1;%64657;%
+     % [f,xi] = ksdensity(h.Values,pts,'PlotFcn','surf'); % (start:start+tt,:)
+     % f_inverse = 1/f;
+     % X_plot = unique(xi(:,1));
+     % Y = unique(xi(:,2));
+     % Z = f;%f_inverse;
+     % Z_plot = reshape(Z,[length(X_plot) length(Y)]);
+
+     % probability density plot
+     figure;
+     sc = surfc(yy(1:end-1),xx(1:end-1),h.Values);% surfc(X_plot,Y,Z_plot)
+     hold on
+     plot(X_clean(start:start+100,2),X_clean(start:start+100,1),'r-o','MarkerSize',2)
+     % plot(X_clean(35631:35635,2),X_clean(35631:35635,1),'r-o','MarkerSize',2)
+     plot(X_clean(start,2),X_clean(start,1),'g-o','MarkerSize',8,'MarkerFaceColor','g')
+     plot(X_clean(start+100,2),X_clean(start+100,1),'r-o','MarkerSize',8,'MarkerFaceColor','r')
+     sc(2).EdgeColor = 'w';
+     view(90,-90)
+     ylabel('RR interval (s)')
+     xlabel('Systolic BP (mm Hg)')
+     zlabel('Probability density')
+     % xlim([0 1])
+     % ylim([100 130])
+     % zlim([-0.5 0.4])
+     filename = ['plot_HR_SBP_probability_' num2str(jj) '.png'];
+     saveas(gcf,filename)
+
+
+     % histogram of SBP and RR intervals
+     % figure;
+     % histogram(X(:,1),xx)
+     % xlabel('RR interval (s)')
+     % ylabel('Counts')
+     % saveas(gcf,'plot_hist_RR.png')
+     %
+     % figure;
+     % histogram(X(:,2),yy)
+     % xlabel('Systolic BP (mm Hg)')
+     % ylabel('Counts')
+     % saveas(gcf,'plot_hist_SBP.png')
+
+
+     % xx = -2:1:40;%0:0.01:1.2;
+     % yy = -2:2:150;%60:0.5:130;
+     % [Xpts, Ypts] = meshgrid(xx, yy);
+     % pts = [reshape(Xpts, numel(Xpts), []), reshape(Ypts, numel(Ypts), [])];
+     %
+     % % Assuming X is defined as your dataset
+     % % [f, xi] = ksdensity(X, pts, 'PlotFcn', 'surf');
+     % X_CO_CoBF = [Baseline_11_Ch4.values(1:1000000) Baseline_11_Ch3.values(1:1000000)];
+     % [f, xi] = ksdensity(X_CO_CoBF, pts, 'PlotFcn', 'surf');
+     % % f_inverse = 1 ./ f;
+     %
+     % % Create the correct grid
+     % X_plot = unique(xi(:, 1));
+     % Y_plot = unique(xi(:, 2));
+     % Z_plot = reshape(f, [length(Y_plot), length(X_plot)]);
+
+ end
+%% Plot the surface
+% close all;
+figure;
+sc = surfc(X_plot, Y_plot, Z_plot);  % Correct order of dimensions
+sc(1).EdgeColor = 'k';
+% xlim([0 40]);
+% ylim([0 130]);
+xlabel('Cardiac output (L/min)')%('RR interval (s)');
+ylabel('Coronary BF (mL/min)')%('Systolic BP (mm Hg)');
+zlabel('Probability Density');
+title('Probability Density Surface');
+saveas(gcf, 'plot_HR_SBP_probability.png');
+
+%%%%% WHAT ABOUT DENSITY PLOT OF COBF AND HR. AS HEART GETS MORE EFFICIENT,
+%%%%% SHOULD BE ABLE TO SEE THIS
+
+% local energy minimum location and depth
+% Disconnectivity of local minima
+% Relationship between basin size and mean duration
+% Correlate transition energies to coronary blood flow, infarct size or
+% other anatomical disease marker? Are these data that we have?
+% Ref: https://www.nature.com/articles/ncomms5765
+
+% Try this with Valsalva physionet data as proof of concept and see if any
+% correlations with age can be identified
 
 %% moving average method
-windowPoints = 50;
-[SBPmovingAvg, RRmovingAvg] = movingAverageSBPRR(X,windowPoints);
-filename = ['plot_movingAvg_1828_day_11_' num2str(windowPoints) 'beatWindow.png'];
-plotMovingAvg(SBPmovingAvg, RRmovingAvg, filename)
+% windowPoints = 50;
+% [SBPmovingAvg, RRmovingAvg] = movingAverageSBPRR(X,windowPoints);
+% filename = ['plot_movingAvg_1828_day_11_' num2str(windowPoints) 'beatWindow.png'];
+% plotMovingAvg(SBPmovingAvg, RRmovingAvg, filename)
 
-
+%% Baroreflex curve from single pressure spike
 
 % based on the method used in:
 %   https://doi.org/10.1161/01.HYP.29.6.1284. This method still relies on
@@ -232,6 +391,7 @@ avg_SBP = zeros(1, length(SBP_bins) - 1);
 avg_RR = zeros(1, length(SBP_bins) - 1);
 std_RR = zeros(1, length(SBP_bins) - 1);
 
+
 % Calculate mean and std deviation for each bin
 for j = 1:length(SBP_bins) - 1
     binIndices = SBPmovingAvg >= SBP_bins(j) & SBPmovingAvg < SBP_bins(j + 1);
@@ -276,7 +436,7 @@ xlim([xLeft,xRight])
 saveas(gcf, filename)
 end
 
-function plotPositiveSlopes(valid_indices_linear, slope, X)
+function  [A1,A2,A3,A4] = plotPositiveSlopes(valid_indices_linear, slope, X)
     % Filter for positive slopes
     positiveSlopeIndices = slope > 0;
     positiveIndices = valid_indices_linear(positiveSlopeIndices);
@@ -297,36 +457,65 @@ function plotPositiveSlopes(valid_indices_linear, slope, X)
     avg_slope = zeros(1, length(SBP_bins) - 1);
     std_slope = zeros(1, length(SBP_bins) - 1);
     avg_RR = zeros(1, length(SBP_bins) - 1);
+    IQR =  zeros(1,length(SBP_bins) - 1);
 
     % Calculate average slope and standard deviation for each bin
-    for j = 1:length(SBP_bins) - 1
+    x_swarm = [];
+    y_swarm = [];
+    for j = 1:length(SBP_bins) -1
         binIndices = SBP_values >= SBP_bins(j) & SBP_values < SBP_bins(j + 1);
         if any(binIndices)
             avg_SBP(j) = mean(SBP_values(binIndices));
             avg_slope(j) = mean(positiveSlopes(binIndices));
             std_slope(j) = std(positiveSlopes(binIndices)); % Standard deviation for error bars
             avg_RR(j) = mean(RR_values(binIndices));
+            IQR(j) = iqr(positiveSlopes(binIndices),'all');
+            bin_slopes = positiveSlopes(binIndices);
+            
+            % Remove outliers (1.5IQR)
+            filtered_slopes = bin_slopes(bin_slopes <= 0.5);
+            avg_slope_filtered(j) = mean(filtered_slopes);
+
+            % construct x value vector for swarm plot
+            num_in_bin(j) = length(filtered_slopes);%length(positiveSlopes(binIndices));
+            bin_midpoint = (SBP_bins(j) + SBP_bins(j+1))/2;
+            x_swarm = [x_swarm; repmat(bin_midpoint, length(filtered_slopes), 1)];
+
+            % construct y value vector for swarm plot
+            % y_swarm_temp = positiveSlopes(binIndices(filtered_slopes))';
+            y_swarm = [y_swarm; filtered_slopes'];
         else
             avg_SBP(j) = NaN;
             avg_slope(j) = NaN;
             std_slope(j) = NaN;
             avg_RR(j) = NaN;
+            IQR(j) = NaN;
         end
     end
 
     % Remove NaN values from bins
     valid_bins = ~isnan(avg_SBP) & ~isnan(avg_slope);
     avg_SBP = avg_SBP(valid_bins);
-    avg_slope = avg_slope(valid_bins);
+    % avg_slope = avg_slope(valid_bins);
     std_slope = std_slope(valid_bins);
 
     % Plot the bar chart with error bars for each bin
     figure;
-    bar(avg_SBP, avg_slope, 'FaceColor', [0.4, 0.7, 0.2]);
+    % x = bin_num;
+    % y = slope;
+    swarmchart(x_swarm,y_swarm,'HandleVisibility','off')
     hold on
-    errorbar(avg_SBP, avg_slope, std_slope, 'k', 'LineStyle', 'none', 'LineWidth', 1.2);
+    % plot mean line for bin
+    for j = 1:length(avg_slope) 
+        plot([SBP_bins(j) SBP_bins(j+1)],[avg_slope_filtered(j) avg_slope_filtered(j)],'k-')
+    end
+    % bar(avg_SBP, avg_slope, 'FaceColor', [0.4, 0.7, 0.2]);
+    % hold on
+    % errorbar(avg_SBP, avg_slope, std_slope, 'k', 'LineStyle', 'none', 'LineWidth', 1.2);
+    legend('Bin mean')
     xlabel('Systolic Blood Pressure (mm Hg)')
     ylabel('Average Slope')
+    % ylim([0 0.2])
     title('Average Positive Slopes for SBP Bins')
     grid on
 
@@ -335,26 +524,98 @@ function plotPositiveSlopes(valid_indices_linear, slope, X)
 
     figure;
     % reconstruct baroreflex curve by connecting slopes of bins together
-    for i = 1:length(avg_SBP)-2 % might change the -2 depending on whether pressure data covers upper range
+    RR = [];
+    BP = [];
+    for i = 1:length(avg_SBP) % might change the -2 depending on whether pressure data covers upper range
         % find the equation of the line for this segment
         x = avg_SBP(i);
         y = avg_RR(i);
         y_intercept = y - avg_slope(i)*x;
 
         % solve for the end points of the line at the bin edges
-        point1 = avg_slope(i)*SBP_bins(i) + y_intercept;
-        point2 = avg_slope(i)*SBP_bins(i+1) +y_intercept;
+        point1(i) = avg_slope(i)*SBP_bins(i) + y_intercept;
+        point2(i) = avg_slope(i)*SBP_bins(i+1) +y_intercept;
 
         % plot the segment
-        plot([SBP_bins(i) SBP_bins(i+1)],[point1 point2],'-','LineWidth',2)
+        plot([SBP_bins(i) SBP_bins(i+1)],[point1(i) point2(i)],'-','LineWidth',2,'HandleVisibility','off')
         hold on
+        RR = [RR point1(i) y point2(i)];
+        BP = [BP SBP_bins(i) SBP_bins(i) + 5 SBP_bins(i+1)];
     end
 
     xlabel('Systolic Blood Pressure (mm Hg)')
     ylabel('RR interval (s)')
     title('Reconstructed baroreflex curve')
+    % xlim([60 130])
     grid on
 
     % Save figure
     saveas(gcf, 'plot_reconstructedBaroreflexCurve.png');
+
+    % Fit points of reconstructed curve to sigmoid
+    % Use end points and mid point
+    
+    rmNan = ~isnan(RR);
+    BP = BP(rmNan);
+    RR = RR(rmNan);
+    [A1,A2,A3,A4] = sigmoidRegression(BP',RR');
+    legend('fit')
+    
+
+
+end
+
+function plotBinnedRRvsSBP(X)
+    % Input: 
+    %   X - a 2-column array where:
+    %       Column 1 is RR intervals (in seconds)
+    %       Column 2 is corresponding SBP values (in mm Hg)
+
+    % Extract RR intervals and SBP values from X
+    RR_intervals = X(:, 1);
+    SBP_values = X(:, 2);
+
+    % Define bin edges for SBP (5 mm Hg intervals)
+    binWidth = 10;
+    SBP_min = floor(min(SBP_values) / binWidth) * binWidth;
+    SBP_max = ceil(max(SBP_values) / binWidth) * binWidth;
+    binEdges = SBP_min:binWidth:SBP_max;
+
+    % Initialize arrays for storing mean and standard deviation of RR intervals
+    avg_RR = zeros(1, length(binEdges) - 1);
+    std_RR = zeros(1, length(binEdges) - 1);
+    avg_SBP = zeros(1, length(binEdges) - 1);  % For the x-axis (bin centers)
+
+    % Calculate the mean and standard deviation of RR intervals for each SBP bin
+    for i = 1:length(binEdges) - 1
+        % Get indices of SBP values that fall within the current bin
+        binIndices = SBP_values >= binEdges(i) & SBP_values < binEdges(i + 1);
+        
+        if any(binIndices)
+            avg_RR(i) = mean(RR_intervals(binIndices));  % Mean RR interval for this bin
+            std_RR(i) = std(RR_intervals(binIndices));   % Standard deviation of RR interval
+            avg_SBP(i) = (binEdges(i) + binEdges(i + 1)) / 2;  % Midpoint of the bin
+        else
+            avg_RR(i) = NaN;
+            std_RR(i) = NaN;
+            avg_SBP(i) = (binEdges(i) + binEdges(i + 1)) / 2;
+        end
+    end
+
+    % Remove bins without data (NaNs)
+    valid_bins = ~isnan(avg_RR);
+    avg_RR = avg_RR(valid_bins);
+    std_RR = std_RR(valid_bins);
+    avg_SBP = avg_SBP(valid_bins);
+
+    % Plot the bar chart with error bars
+    figure;
+    bar(avg_SBP, avg_RR, 'FaceColor', [0.2, 0.6, 0.8]); % Bar chart for average RR intervals
+    hold on;
+    errorbar(avg_SBP, avg_RR, std_RR, 'k', 'LineStyle', 'none', 'LineWidth', 1.2); % Error bars
+    xlabel('Systolic Blood Pressure (mm Hg)');
+    ylabel('Average RR Interval (s)');
+    title('Binned RR Interval vs SBP');
+    grid on;
+    hold off;
 end
