@@ -137,7 +137,19 @@ end
 
 
 %% Check that RR intervals given match systolic BP peaks
-RRfromBP = diff(time(systolicIndex));
+
+
+% Add in manually reviewed data points
+load 'manual_curated_22222s.mat' % variables are times and SBPvals
+
+SBPtimes = [time(systolicIndex) times'];
+
+% Reorder so points are in chronological order
+[SBPsorted,I] = sort(SBPtimes);
+
+% Calculate RR interval
+RRfromBP = diff(SBPsorted);
+
 % figure;
 % plot(RRfromBP(1:157425),diff(Baseline_11_Ch6.times),'o')
 % xlabel('RR interval from SBP (s)')
@@ -145,8 +157,10 @@ RRfromBP = diff(time(systolicIndex));
 % saveas(gcf,'plot_RRfromBPvsRR.png')
 
 % plot of RR intervals binned by SBP
-SBP = bpwaveform(systolicIndex);
-X = [RRfromBP', SBP(2:end)'];
+SBPunsorted = [bpwaveform(systolicIndex) SBPvals'];
+SBPsorted = SBPunsorted(I);
+
+X = [RRfromBP', SBPsorted(2:end)'];
 % plotBinnedRRvsSBP(X)
 %% sequence method
 systolicTime = time(systolicIndex);
@@ -182,18 +196,20 @@ valid_indices = IdUpSequences(X);
  %% Plot points of HR and SBP pairs and find PDF. Plot potential energy surface to visualize attractors
  var = [1];
  for jj = 1:length(var)
-     xx = 0.18:0.02:1.3;%0.4:0.02:var(jj);% 0.2:0.01:1.54;% xx = 0:0.1:1;
-     yy = 80:2:174;%85:2:130;%90:1:118;% yy = 100:1:130;
-     [Xpts,Ypts] = meshgrid(xx,yy);
-     figure;
-     h=histogram2(X(:,1),X(:,2),xx,yy);
+     xx = 0:0.5:35;%0.18:0.02:1.3;
+     yy = 0:1:140;%70:2:180;
+     % [Xpts,Ypts] = meshgrid(xx,yy);
+     % figure;
+     % h=histogram2(X(:,1),X(:,2),xx,yy);
 
      % Remove double counted peaks
      lowRRidx = find(X(:,1)<0.1);
      X_clean = X;
      X_clean(lowRRidx,:) = [];
+     % Switch this out if plotting CO and CoBF
+     X_clean = [Baseline_11_Ch4.values(10000:110000), Baseline_11_Ch3.values(10000:110000)];
 
-     pts = [reshape(Xpts,numel(Xpts), []), reshape(Ypts, numel(Ypts), [])];
+     % pts = [reshape(Xpts,numel(Xpts), []), reshape(Ypts, numel(Ypts), [])];
      tt = 400; % number of heart beats for ~4-5 min period based on mean heart period of 0.6635 s
      % start index for peak at 2.22e4 seconds: 35528
      start = 35278;%35628;%35528;%1;%64657;%
@@ -205,22 +221,28 @@ valid_indices = IdUpSequences(X);
      % Z_plot = reshape(Z,[length(X_plot) length(Y)]);
 
      % probability density plot
+     [Xpts, Ypts] = meshgrid(xx,yy);
+    pts1 = Xpts(:);
+    pts2 = Ypts(:);
+    pts = [pts1 pts2];
+     [f, xi] = ksdensity(X_clean,pts,'PlotFcn', 'surf');
+     F_grid = reshape(f, size(Xpts));
      figure;
-     sc = surfc(yy(1:end-1),xx(1:end-1),h.Values);% surfc(X_plot,Y,Z_plot)
-     hold on
-     plot(X_clean(start:start+100,2),X_clean(start:start+100,1),'r-o','MarkerSize',2)
-     % plot(X_clean(35631:35635,2),X_clean(35631:35635,1),'r-o','MarkerSize',2)
-     plot(X_clean(start,2),X_clean(start,1),'g-o','MarkerSize',8,'MarkerFaceColor','g')
-     plot(X_clean(start+100,2),X_clean(start+100,1),'r-o','MarkerSize',8,'MarkerFaceColor','r')
+    sc = surfc(Ypts, Xpts, -log(F_grid));
+    hold on
+     % plot(X_clean(start:start+100,2),X_clean(start:start+100,1),'r-o','MarkerSize',2)
+     % % plot(X_clean(35631:35635,2),X_clean(35631:35635,1),'r-o','MarkerSize',2)
+     % plot(X_clean(start,2),X_clean(start,1),'g-o','MarkerSize',8,'MarkerFaceColor','g')
+     % plot(X_clean(start+100,2),X_clean(start+100,1),'r-o','MarkerSize',8,'MarkerFaceColor','r')
      sc(2).EdgeColor = 'w';
      view(90,-90)
-     ylabel('RR interval (s)')
-     xlabel('Systolic BP (mm Hg)')
-     zlabel('Probability density')
+     ylabel('Coronary blood flow (mL/min)')%('RR interval (s)')%
+     xlabel('Cardiac output (L/min)')%('Systolic BP (mm Hg)')% 
+     zlabel('Potential energy')
      % xlim([0 1])
      % ylim([100 130])
      % zlim([-0.5 0.4])
-     filename = ['plot_HR_SBP_probability_' num2str(jj) '.png'];
+     filename = ['plot_CO_CoBF_probability_' num2str(jj) '.png'];
      saveas(gcf,filename)
 
 
