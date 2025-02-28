@@ -37,7 +37,7 @@ for i = 1:length(data_sample.HR)
 end
 RRraw = diff(data_sample.HR);
 % convert to hrs
-timeRRraw = timeRRraw/60/60;
+timeRRraw 
 figure;
 stairs(timeRRraw(1:end-1),RRraw)
 
