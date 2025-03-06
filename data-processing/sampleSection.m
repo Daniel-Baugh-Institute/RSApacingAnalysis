@@ -87,11 +87,6 @@ for i = 1:num_subjects
 
         elseif strcmp('HR',struct.title) || strcmp('HR(Peak)',struct.title)
             data(i).HR = struct.times;
-            timeRRraw = zeros(1,length(data_sample.HR));
-            for jj = 1:length(data_sample.HR)
-                timeRRraw_temp = sum(data_sample.HR(1:jj));
-                timeRRraw(jj) = timeRRraw_temp;
-            end
         else
             disp('Title is not BP, CoBF, CO, or HR.')
             disp('Animal number: ')

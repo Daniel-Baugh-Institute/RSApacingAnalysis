@@ -2,83 +2,54 @@
 % TODO: fix plotting of CO and CoBF for 4, 6, 9,
 
 clear; close all; restoredefaultpath;
-% addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
+addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
 
 % local file paths
-cd 'C:\Users\mmgee\OneDrive - University of Delaware - o365\Documents\Github\NZ-physiology-data'
+% cd 'C:\Users\mmgee\OneDrive - University of Delaware - o365\Documents\Github\NZ-physiology-data'
 % addpath(genpath('C:\Users\mmgee\AppData\Local\Temp\Mxt231\RemoteFiles'))
-addpath 'C:\Users\mmgee\OneDrive - University of Delaware - o365\Documents\Github\NZ-physiology-data'
+% addpath 'C:\Users\mmgee\OneDrive - University of Delaware - o365\Documents\Github\NZ-physiology-data'
+
+%% Set up parallel pool
+% myCluster = parcluster('local');
+% myCluster.NumWorkers = str2double(getenv('SLURM_CPUS_ON_NODE')) / str2double(getenv('SLURM_CPUS_PER_TASK'));
+% myCluster.JobStorageLocation = getenv('TMPDIR');
+% myPool = parpool(myCluster, myCluster.NumWorkers);
 %% Load and preprocess data to save to smaller file
 
-filesToRead = {'2019 HF baseline.mat'};
-% {'2019 HF baseline.mat', '2031 HF baseline.mat', '2035 HF baseline.mat','2037 HF baseline.mat',...
-%     '1828 day 11 baseline.mat', '2445 baseline.mat','2446 baseline.mat',...
-%     '2454 baseline.mat','2478 baseline.mat','2453 baseline no CoBF.mat'};
+filesToRead = {'2019 HF baseline.mat', '2031 HF baseline.mat', '2035 HF baseline.mat','2037 HF baseline.mat',...
+    '1828 day 11 baseline.mat', '2445 baseline.mat','2446 baseline.mat',...
+    '2454 baseline.mat','2478 baseline.mat','2453 baseline no CoBF.mat'};
 
-sampleLength = 15; % minutes
-filename = 'sample15min.mat';
+% sampleLength = 15; % minutes
+% filename = 'sample15min.mat';
 % sampleSection(filesToRead, sampleLength, filename)
-load sample15min.mat
-inFs = 1000;
-verbose = 1;
-[ ~, systolicIndex, ~, ~, time, bpwaveform ] = BP_annotate( data_sample(1).BP, inFs, verbose );
-
-systolicTime = time(systolicIndex);
-RRfromBP = diff(systolicTime);
-plotTime = systolicTime - systolicTime(1);
-figure;
-stairs(plotTime(2:end),RRfromBP)
-
-% plot RR intervals from raw data
-timeRRraw = zeros(1,length(data_sample.HR));
-for i = 1:length(data_sample.HR)
-    timeRRraw_temp = sum(data_sample.HR(1:i));
-    timeRRraw(i) = timeRRraw_temp;
-end
-RRraw = diff(data_sample.HR);
-% convert to hrs
-timeRRraw = timeRRraw/60/60;
-figure;
-stairs(timeRRraw(1:end-1),RRraw)
-
-% take another look at ECG data to see if I can just use that instead
-
-% Find spots with RR > 1.75 
-% Re-run BP_annotate for a 10 second time frame
-% re-insert section
 
 num_subjects = length(filesToRead);
 
 % Pull data out from each animal's file and combine
 % Struct data has fields HR, CO, CoBF, BP, timeRaw for each animal
 % (data(1), data(2),...)
-% combineSamples(filesToRead);
+
+% Run data extraction in parallel
+
+    saveFileName = 'combinedData_RRfromRaw12.mat';
+    % data = combineSamples(filesToRead,saveFileName);
 
 
-% % RR intervals from SBP peaks
-%
-% % Add in manually reviewed data points
-% % load 'manual_curated_22222s.mat' % variables are times and SBPvals for 1828 day 11 baseline.mat
-%
-% % SBPtimes = [time(systolicIndex) times'];
-%
-% % Reorder so points are in chronological order
-% [SBPsorted,I] = sort(SBPtimes);
-%
-% % Calculate RR interval
-% RRfromBP = diff(SBPsorted);
-%
-% % figure;
-% % plot(RRfromBP(1:157425),diff(Baseline_11_Ch6.times),'o')
-% % xlabel('RR interval from SBP (s)')
-% % ylabel('Exp. RR interval (s)')
-% % saveas(gcf,'plot_RRfromBPvsRR.png')
-%
-% % plot of RR intervals binned by SBP
-% SBPunsorted = [bpwaveform(systolicIndex) SBPvals'];
-% SBPsorted = SBPunsorted(I);
-%
-% X = [RRfromBP', SBPsorted(2:end)'];
+% Repackage data into single file
+% for i = 1:num_subjects
+%     fileName = ['combinedData_RRfromRaw' num2str(i) '.mat'];
+%     load(fileName)
+%     combinedData(i).time = data(1).time';
+%     combinedData(i).BP = data(1).BP;
+%     combinedData(i).CoBF = data(1).CoBF;
+%     combinedData(i).CO = data(1).CO;
+%     combinedData(i).RRtime = data(1).RRtime;
+%     combinedData(i).RRint = data(1).RRint;
+%     combinedData(i).MAP = data(1).MAP;
+% end
+% save('combinedData15.mat','data','-v7.3')
+load(saveFileName)
 
 
 % combinedAnnotatedData has first 2 HF samples
@@ -91,19 +62,22 @@ num_subjects = length(filesToRead);
 % tested using the augmented dickey-fuller test
 
 % Plot points of HR and SBP pairs and find PDF. Plot potential energy surface to visualize attractors
-% var1 = 'SBP';
-% var2 = 'RR';
+var1 = 'SBP';
+var2 = 'RR';
 verbose = 0; % 1 for histogram, 0 for no histogram
-% PDF = plotPES(annotated_data,var1,var2,verbose); % returns struct with F_grid for each individual
+[PDF, PES] = plotPES(data,var1,var2,verbose); % returns struct with F_grid for each individual
 
 % transition state analysis
 % calculate transition energy
-% calcTE(PDF,num_subjects)
+calcTE(PES)
 
 % Plot potential energy surface for CO and CoBF
 % var1 = 'CO';
 % var2 = 'CoBF';
 % PDF = plotPES(data,var1,var2,verbose);
+
+% Calculate Bhattacharyya distance between potential energy surfaces
+D_B = bhattacharyya_distance_2d(PDF)
 
 
 %% HRV
@@ -174,7 +148,9 @@ verbose = 0; % 1 for histogram, 0 for no histogram
 % other anatomical disease marker? Are these data that we have?
 % Ref: https://www.nature.com/articles/ncomms5765
 
-
+%% Exit code
+% delete(myPool);
+% exit
 %% Functions from baroreflex curve reconstruction
 % Function for rrinterval interpolation
 function [interpolated_data, interpolated_times] = interpolate_to_1000Hz(data, times)
@@ -497,3 +473,5 @@ title('Binned RR Interval vs SBP');
 grid on;
 hold off;
 end
+
+
