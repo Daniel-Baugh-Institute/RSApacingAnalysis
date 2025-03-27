@@ -15,6 +15,10 @@ for i = 1:num_subjects
     disp('subject number')
     disp(i)
     F_grid = PES(j,i).F_grid;
+
+    % Check for inf of -inf vlaues from taking -ln(0) to get PES from PDF
+    F_grid(isinf(F_grid)) = 0;
+
     % Find location and height of local maxima
     [TF1, P1] = islocalmin(F_grid,1); % only finds maxima along one dimension
     [TF2, P2] = islocalmin(F_grid,2);
@@ -60,8 +64,8 @@ for i = 1:num_subjects
 end
 
 % stats to compare HF and control
-HF_idx = 1:4;
-ctrl_idx = 5:10;
+HF_idx = 1:5;
+ctrl_idx = 6:9;
 
 % compare HR, BP, CO, CoBF
 
@@ -69,10 +73,12 @@ disp('Mean prominence')
 meanP_HF = meanP(:,HF_idx);
 meanP_ctrl = meanP(:,ctrl_idx);
 disp('Mean and std HF:')
-mean(meanP_HF,'all')
+mean(meanP_HF,'omitmissing')
+meanP_HF = rmmissing(meanP_HF);
 std(meanP_HF(:))
 disp('Mean and std control:')
-mean(meanP_ctrl,'all')
+mean(meanP_ctrl,'omitmissing')
+meanP_ctrl = rmmissing(meanP_ctrl);
 std(meanP_ctrl(:))
 [h,p,ci,stats] = ttest2(meanP_HF(:),meanP_ctrl(:))
 
@@ -80,10 +86,12 @@ disp('Median prominence')
 medianP_HF = medianP(:,HF_idx);
 medianP_ctrl = medianP(:,ctrl_idx);
 disp('Mean and std HF:')
-mean(medianP_HF(:))
+mean(medianP_HF(:),'omitmissing')
+medianP_HF = rmmissing(medianP_HF);
 std(medianP_HF(:))
 disp('Mean and std control:')
-mean(medianP_ctrl(:))
+mean(medianP_ctrl(:),'omitmissing')
+medianP_ctrl = rmmissing(medianP_ctrl);
 std(medianP_ctrl(:))
 [h,p,ci,stats] = ttest2(medianP_HF(:),medianP_ctrl(:))
 
@@ -91,9 +99,11 @@ disp('Min prominence')
 minP_HF = minP(:,HF_idx);
 minP_ctrl = minP(:,ctrl_idx);
 disp('Mean and std HF:')
-mean(minP_HF(:))
+mean(minP_HF(:),'omitmissing')
+minP_HF = rmmissing(minP_HF);
 std(minP_HF(:))
 disp('Mean and std control:')
+minP_ctrl = rmmissing(minP_ctrl);
 mean(minP_ctrl(:))
 std(minP_ctrl(:))
 [h,p,ci,stats] = ttest2(minP_HF(:),minP_ctrl(:))
@@ -102,20 +112,24 @@ disp('Standard deviation of prominence')
 stdP_HF = stdP(:,HF_idx);
 stdP_ctrl = stdP(:,ctrl_idx);
 disp('Mean and std HF:')
+stdP_HF = rmmissing(stdP_HF);
 mean(stdP_HF(:))
 std(stdP_HF(:))
 disp('Mean and std control:')
+stdP_ctrl = rmmissing(stdP_ctrl);
 mean(stdP_ctrl(:))
 std(stdP_ctrl(:))
-[h,p,ci,stats] = ttest2(stdP_HF(:),stdP_ctrl(:))
+[~,p,ci,stats] = ttest2(stdP_HF(:),stdP_ctrl(:))
 
 disp('Mean transition energy')
 meanTE_HF = meanTE(:,HF_idx);
 meanTE_ctrl = meanTE(:,ctrl_idx);
 disp('Mean and std HF:')
+meanTE_HF = rmmissing(meanTE_HF);
 mean(meanTE_HF(:))
 std(meanTE_HF(:))
 disp('Mean and std control:')
+meanTE_ctrl = rmmissing(meanTE_ctrl);
 mean(meanTE_ctrl(:))
 std(meanTE_ctrl(:))
 [h,p,ci,stats] = ttest2(meanTE_HF(:),meanTE_ctrl(:))
