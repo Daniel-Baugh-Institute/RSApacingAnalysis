@@ -126,6 +126,30 @@ ylabel('Counts')
 legend('Heart failure', 'Control')
 saveas(gcf,'work_per_beat.png')
 
+% Plot
+ydata = [plotCtrl(:);plotHF(:)];
+xgroupdata = [categorical(repmat({'Control'}, 1, length(plotCtrl(:)))), ....
+    categorical(repmat({'HF'}, 1, length(plotHF(:))))];
+
+figure;
+boxchart(ydata, 'GroupByColor', xgroupdata);
+hold on;
+
+% Plot raw data points directly above their corresponding box plots
+xHF = 1.25*ones(size(plotHF(:)));
+xCtrl = 0.75 * ones(size(plotCtrl(:)));
+scatter(xHF, plotHF(:), 'r', 'filled', 'MarkerFaceAlpha', 0.5);
+scatter(xCtrl, plotCtrl(:), 'b', 'filled', 'MarkerFaceAlpha', 0.5);
+
+ax = gca;
+set(ax,'xticklabel',[])
+ylabel('Work per beat (mL*mm Hg)');
+legend({'Control','HF'}, 'Location', 'best');
+hold off;
+set(gca,'FontSize',16)
+saveas(gcf,'work_box.png')
+
+
 % efficiency
 size(efficiency_per_beat(:,HFidx))
 plotHF = efficiency_mean(HFidx);%efficiency_per_beat(:,HFidx);
@@ -147,5 +171,28 @@ xlabel('Efficiency (mm Hg)') % mL*mmHg/mL
 ylabel('Counts')
 legend('Heart failure', 'Control')
 saveas(gcf,'efficiency_per_beat.png')
+
+% Plot
+ydata = [plotCtrl(:);plotHF(:)];
+xgroupdata = [categorical(repmat({'Control'}, 1, length(plotCtrl(:)))), ....
+    categorical(repmat({'HF'}, 1, length(plotHF(:))))];
+
+figure;
+boxchart(ydata, 'GroupByColor', xgroupdata);
+hold on;
+
+% Plot raw data points directly above their corresponding box plots
+xHF = 1.25*ones(size(plotHF(:)));
+xCtrl = 0.75 * ones(size(plotCtrl(:)));
+scatter(xHF, plotHF(:), 'r', 'filled', 'MarkerFaceAlpha', 0.5);
+scatter(xCtrl, plotCtrl(:), 'b', 'filled', 'MarkerFaceAlpha', 0.5);
+
+ax = gca;
+set(ax,'xticklabel',[])
+ylabel('Efficiency (mm Hg)');
+legend({'Control','HF'}, 'Location', 'best');
+hold off;
+set(gca,'FontSize',16)
+saveas(gcf,'efficiency_box.png')
 
 end

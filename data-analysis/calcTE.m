@@ -1,11 +1,11 @@
-function [meanP,minP,medianP,stdP,meanTE] = calcTE(PES)
+function [meanP,maxP,medianP,stdP,meanTE] = calcTE(PES)
 % Calculate transition energy
 addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
 [num_slices,num_subjects] = size(PES);
 
 % Preallocate
 meanP = zeros(num_slices,num_subjects);
-minP = zeros(num_slices,num_subjects);
+maxP = zeros(num_slices,num_subjects);
 medianP = zeros(num_slices,num_subjects);
 stdP = zeros(num_slices,num_subjects);
 meanTE = zeros(num_slices,num_subjects);
@@ -20,18 +20,18 @@ for i = 1:num_subjects
     F_grid(isinf(F_grid)) = 0;
 
     % Find location and height of local maxima
-    [TF1, P1] = islocalmin(F_grid,1); % only finds maxima along one dimension
-    [TF2, P2] = islocalmin(F_grid,2);
+    [TF1, P1] = islocalmax(F_grid,1); % only finds maxima along one dimension
+    [TF2, P2] = islocalmax(F_grid,2);
     TF = TF1 & TF2;
     heights = F_grid(TF);
 
     %% Find energy barrier to move between minima using peak prominence
-    P1_filt = -P1.*TF;
-    P2_filt = -P2.*TF;
-    P = min(P1_filt,P2_filt,'omitnan');
+    P1_filt = P1.*TF;
+    P2_filt = P2.*TF;
+    P = max(P1_filt,P2_filt,'omitnan');
     % TODO: split HF and control
     meanP(j,i) = mean(nonzeros(P));
-    minP(j,i) = min(min(P));
+    maxP(j,i) = max(max(P));
     medianP(j,i) = median(nonzeros(P));
     stdP(j,i) = std(nonzeros(P));
 
@@ -82,6 +82,30 @@ meanP_ctrl = rmmissing(meanP_ctrl);
 std(meanP_ctrl(:))
 [h,p,ci,stats] = ttest2(meanP_HF(:),meanP_ctrl(:))
 
+% Plot
+ydata = [meanP_ctrl(:);meanP_HF(:)];
+xgroupdata = [categorical(repmat({'Control'}, 1, length(meanP_ctrl(:)))), ....
+    categorical(repmat({'HF'}, 1, length(meanP_HF(:))))];
+figure;
+boxchart(ydata, 'GroupByColor', xgroupdata);
+hold on;
+
+% Plot raw data points directly above their corresponding box plots
+xHF = 1.25*ones(size(meanP_HF(:)));
+xCtrl = 0.75 * ones(size(meanP_ctrl(:)));
+
+scatter(xHF, meanP_HF(:), 'r', 'filled', 'MarkerFaceAlpha', 0.5);
+scatter(xCtrl, meanP_ctrl(:), 'b', 'filled', 'MarkerFaceAlpha', 0.5);
+
+ax = gca;
+set(ax,'xticklabel',[])
+ylabel('Mean Prominence');
+legend({'Control','HF'}, 'Location', 'best');
+hold off;
+set(gca,'FontSize',16)
+saveas(gcf,'Mean_prominence_12min.png')
+
+% Median prominence
 disp('Median prominence')
 medianP_HF = medianP(:,HF_idx);
 medianP_ctrl = medianP(:,ctrl_idx);
@@ -95,19 +119,62 @@ medianP_ctrl = rmmissing(medianP_ctrl);
 std(medianP_ctrl(:))
 [h,p,ci,stats] = ttest2(medianP_HF(:),medianP_ctrl(:))
 
-disp('Min prominence')
-minP_HF = minP(:,HF_idx);
-minP_ctrl = minP(:,ctrl_idx);
-disp('Mean and std HF:')
-mean(minP_HF(:),'omitmissing')
-minP_HF = rmmissing(minP_HF);
-std(minP_HF(:))
-disp('Mean and std control:')
-minP_ctrl = rmmissing(minP_ctrl);
-mean(minP_ctrl(:))
-std(minP_ctrl(:))
-[h,p,ci,stats] = ttest2(minP_HF(:),minP_ctrl(:))
+% Plot
+ydata = [medianP_ctrl(:);medianP_HF(:)];
+figure;
+boxchart(ydata, 'GroupByColor', xgroupdata);
+hold on;
 
+% Plot raw data points directly above their corresponding box plots
+scatter(xHF, medianP_HF(:), 'r', 'filled', 'MarkerFaceAlpha', 0.5);
+scatter(xCtrl, medianP_ctrl(:), 'b', 'filled', 'MarkerFaceAlpha', 0.5);
+
+ax = gca;
+set(ax,'xticklabel',[])
+ylabel('Median prominence');
+legend({'Control','HF'}, 'Location', 'best');
+hold off;
+set(gca,'FontSize',16)
+saveas(gcf,'Median_prominence_12min.png')
+
+% Max prominence
+disp('Max prominence')
+maxP_HF = maxP(:,HF_idx);
+maxP_ctrl = maxP(:,ctrl_idx);
+disp('Mean and std HF:')
+mean(maxP_HF(:),'omitmissing')
+maxP_HF = rmmissing(maxP_HF);
+std(maxP_HF(:))
+disp('Mean and std control:')
+maxP_ctrl = rmmissing(maxP_ctrl);
+mean(maxP_ctrl(:))
+std(maxP_ctrl(:))
+[h,p,ci,stats] = ttest2(maxP_HF(:),maxP_ctrl(:))
+
+% Plot
+ydata = [maxP_ctrl(:);maxP_HF(:)];
+xgroupdata = [categorical(repmat({'Control'}, 1, length(maxP_ctrl(:)))), ....
+    categorical(repmat({'HF'}, 1, length(maxP_HF(:))))];
+
+figure;
+boxchart(ydata, 'GroupByColor', xgroupdata);
+hold on;
+
+% Plot raw data points directly above their corresponding box plots
+xHF = 1.25*ones(size(maxP_HF(:)));
+xCtrl = 0.75 * ones(size(maxP_ctrl(:)));
+scatter(xHF, maxP_HF(:), 'r', 'filled', 'MarkerFaceAlpha', 0.5);
+scatter(xCtrl, maxP_ctrl(:), 'b', 'filled', 'MarkerFaceAlpha', 0.5);
+
+ax = gca;
+set(ax,'xticklabel',[])
+ylabel('Max Prominence');
+legend({'Control','HF'}, 'Location', 'best');
+hold off;
+set(gca,'FontSize',16)
+saveas(gcf,'Max_prominence_12min.png')
+
+% Std of prominence
 disp('Standard deviation of prominence')
 stdP_HF = stdP(:,HF_idx);
 stdP_ctrl = stdP(:,ctrl_idx);
@@ -119,7 +186,31 @@ disp('Mean and std control:')
 stdP_ctrl = rmmissing(stdP_ctrl);
 mean(stdP_ctrl(:))
 std(stdP_ctrl(:))
-[~,p,ci,stats] = ttest2(stdP_HF(:),stdP_ctrl(:))
+[h,p,ci,stats] = ttest2(stdP_HF(:),stdP_ctrl(:))
+
+% Plot
+ydata = [stdP_ctrl(:);stdP_HF(:)];
+xgroupdata = [categorical(repmat({'Control'}, 1, length(stdP_ctrl(:)))), ....
+    categorical(repmat({'HF'}, 1, length(stdP_HF(:))))];
+
+figure;
+boxchart(ydata, 'GroupByColor', xgroupdata);
+hold on;
+
+% Plot raw data points directly above their corresponding box plots
+xHF = 1.25*ones(size(stdP_HF(:)));
+xCtrl = 0.75 * ones(size(stdP_ctrl(:)));
+scatter(xHF, stdP_HF(:), 'r', 'filled', 'MarkerFaceAlpha', 0.5);
+scatter(xCtrl, stdP_ctrl(:), 'b', 'filled', 'MarkerFaceAlpha', 0.5);
+
+ax = gca;
+set(ax,'xticklabel',[])
+ylabel('Standard deviation of prominence');
+legend({'Control','HF'}, 'Location', 'best');
+hold off;
+set(gca,'FontSize',16)
+saveas(gcf,'Std_prominence_12min.png')
+
 
 disp('Mean transition energy')
 meanTE_HF = meanTE(:,HF_idx);
@@ -133,4 +224,27 @@ meanTE_ctrl = rmmissing(meanTE_ctrl);
 mean(meanTE_ctrl(:))
 std(meanTE_ctrl(:))
 [h,p,ci,stats] = ttest2(meanTE_HF(:),meanTE_ctrl(:))
+
+% Plot
+ydata = [meanTE_ctrl(:);meanTE_HF(:)];
+xgroupdata = [categorical(repmat({'Control'}, 1, length(meanTE_ctrl(:)))), ....
+    categorical(repmat({'HF'}, 1, length(meanTE_HF(:))))];
+
+figure;
+boxchart(ydata, 'GroupByColor', xgroupdata);
+hold on;
+
+% Plot raw data points directly above their corresponding box plots
+xHF = 1.25*ones(size(meanTE_HF(:)));
+xCtrl = 0.75 * ones(size(meanTE_ctrl(:)));
+scatter(xHF, meanTE_HF(:), 'r', 'filled', 'MarkerFaceAlpha', 0.5);
+scatter(xCtrl, meanTE_ctrl(:), 'b', 'filled', 'MarkerFaceAlpha', 0.5);
+
+ax = gca;
+set(ax,'xticklabel',[])
+ylabel('Mean transition energy');
+legend({'Control','HF'}, 'Location', 'best');
+hold off;
+set(gca,'FontSize',16)
+saveas(gcf,'Mean_TE_12min.png')
 end
