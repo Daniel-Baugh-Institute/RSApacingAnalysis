@@ -31,20 +31,29 @@ rng(48)
 c = 3; % one channel, potential energy
 numSamples = num_subjects * num_slices;
 numClasses = 2; % normal and heart failure
-imageSize = [541 684 c];
 holdout = 0.3;
-inputSizeTrain = [541 684 c NaN]; %
+% inputSizeTrain = [662 881 c NaN];%[541 684 c NaN]; %
 inputFormat = 'SSCB';
 
 %% Unpack 2D data and format into imagestore
-addpath(genpath('C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data'))
-gen_location = 'C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\'; % location of image files
-count = 1;
+% addpath(genpath('C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data'))
+addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
+
+%%%%%% CHANGE THIS PART FOR CO/COBF VS RR/MAP %%%%%%%%%%%%%
+% RR and MAP grid
+xx = 0.18:0.02:1.4;
+yy = 70:2:200;
+% gen_location = 'C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\RR_MAP_1hr\'; % location of image files
 
 % CO and CoBF grid
-xx = 0:1:50;
-yy = 0:10:400;
+% xx = 0:1:50;
+% yy = 0:10:400;
+% gen_location = 'C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\RR_MAP_1hr\'; % location of image files
+gen_location = '/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/PESimages/CO_CoBF_30m_48slices/';
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 [Xpts, Ypts] = meshgrid(xx,yy);
+count = 1;
 
 % Sort images into folders for labels
 num_HF_animals = 5;
@@ -52,39 +61,75 @@ num_ctrl_animals = 4;
 numRepeatsHF = num_slices*num_HF_animals;
 numRepeatsCtrl = num_slices*num_ctrl_animals;
 % CHECK THAT IMAGES GO TO CORRECT FOLDER #########################################
-for i = 1:num_subjects
-    for j = 1:num_slices
-        P = PES(j,i).F_grid;
-        % Check for inf of -inf vlaues from taking -ln(0) to get PES from PDF
-        P(isinf(P)) = 0;
-        X(:,:,c, count) = normalize(P(:,:,1,1),'range');
+% A2 S17-22 not NaN but no data for RR-MAP?
+i = 1;
+j = 1;
+% for i = 1:num_subjects
+%     for j = 1:num_slices
+        % P = PES(j,i).F_grid;
+        % 
+        % % Don't create image file if no data for that window
+        % if any(isnan(P))
+        %     i
+        %     j
+        %     count = count + 1;
+        % else
+        %     % Check for inf of -inf vlaues from taking -ln(0) to get PES from PDF
+        %     P(isinf(P)) = 0;
+        %     X(:,:,c, count) = normalize(P(:,:,1,1),'range');
+        % 
+        %     % save image files to location
+        %     figure;
+        %     try
+        %         sc = surfc(Ypts, Xpts, X(:,:,c, count));
+        %     catch
+        %         i
+        %         j
+        %         return
+        %     end
+        %     colormap(jet)
+        %     hold on
+        %     sc(2).EdgeColor = 'none';
+        %     sc(1).EdgeColor = 'none';
+        %     view(90,-90)
+        %     % shading interp
+        %     grid off
+        %     axis off
+        %     ax = gca;
+            if count <= numRepeatsHF
+                location = [gen_location 'HF/'];
+            else
+                location = [gen_location 'C/'];
+            end
 
-        % save image files to location
-        figure;
-        sc = surfc(Ypts, Xpts, X(:,:,c, count));
-        hold on
-        %sc(2).EdgeColor = 'w';
-        %sc(1).EdgeColor = 'w';
-        view(90,-90)
-        % shading interp
-        grid off
-        axis off
-        ax = gca;
-        if count <= numRepeatsHF
-            location = [gen_location 'HF\'];
-        else
-            location = [gen_location 'C\'];
-        end
+            filename = [location 'CO_CoBF_30m_A' num2str(i) '_S' num2str(j)];
+            % exportgraphics(ax,filename,'Resolution',150)
+            resolution = 150; % resolution in dpi
 
-        filename = [location 'CO_CoBF_1hr_A' num2str(i) '_S' num2str(j) '.png'];
-        exportgraphics(ax,filename)
-        a = imread(filename);
-        [rows, columns, numberOfColorChannels] = size(a)
+            % Randomly flip images to avoid over training
+            % rand_flipx = randn(1);
+            % if rand_flipx > 0
+            %     set(gca,'xdir','reverse')
+            % end
+            % rand_flipy = randn(1);
+            % if rand_flipy > 0
+            %     set(gca,'ydir','reverse')
+            % end
 
-        count = count + 1;
-    end
-end
-close all;
+            % set(gcf,'position',[0 0 600 500])
+            % set(gca,'position',[0 0 1 1]);
+            % print(filename,'-dpng',['-r' num2str(resolution)]);
+            filename_ext = [filename '.png'];
+            a = imread(filename_ext);
+            [rows, columns, numberOfColorChannels] = size(a);
+
+%             count = count + 1;
+%             close all;
+%         end
+%     end
+% end
+imageSize = [rows columns c]; %[781 938 c];% CO/CoBF[543 686 c];
+
 imds = imageDatastore(gen_location,'IncludeSubfolders',true,'LabelSource','foldernames');
 
 
@@ -93,66 +138,40 @@ imds = imageDatastore(gen_location,'IncludeSubfolders',true,'LabelSource','folde
 % [dataTrain, dataTest] = splitEachLabel(imds, 1-holdout, 'randomized');
 
 % Train-test split by animal
-num_test = 3; % number of test sheep (Sheep 1, 5, 8)
-% testSheep = randi(9,[1 num_test]);
-num_control = 1;%sum(testSheep > 5);
-num_HF = num_test - num_control;
-fs = matlab.io.datastore.FileSet(["C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A8_S1.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A8_S2.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A8_S3.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A8_S4.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A8_S5.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A1_S1.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A1_S2.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A1_S3.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A1_S4.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A1_S5.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A5_S1.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A5_S2.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A5_S3.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A5_S4.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A5_S5.png"
-    ]);
-imds_test = imageDatastore(fs);
-imds_test.Labels = categorical([repmat({'HF'}, num_HF*num_slices, 1); repmat({'C'}, num_control*num_slices, 1)]);
+% Get list of all .png files in the directory
+fileList = dir('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/PESimages/CO_CoBF_30m_48slices/**/*.png');
+% fileList = dir('C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\RR_MAP_1hr\**\*.png');
 
-% Train sheep
-fs_train = matlab.io.datastore.FileSet(["C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A6_S1.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A6_S2.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A6_S3.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A6_S4.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A6_S5.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A7_S1.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A7_S2.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A7_S3.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A7_S4.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A7_S5.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A9_S1.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A9_S2.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A9_S3.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A9_S4.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\C\CO_CoBF_1hr_A9_S5.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A2_S1.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A2_S2.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A2_S3.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A2_S4.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A2_S5.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A3_S1.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A3_S2.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A3_S3.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A3_S4.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A3_S5.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A4_S1.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A4_S2.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A4_S3.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A4_S4.png",...
-    "C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\CO_CoBF_1hr\HF\CO_CoBF_1hr_A4_S5.png",...
-    ]);
+% Filter files for test set (A8 (HF), A1 (C), A (C))
+filteredFileList = fileList(~cellfun('isempty', regexp({fileList.name}, 'A7|A8|A5|A1')));
+num_HF_samples = length({fileList(~cellfun('isempty', regexp({fileList.name}, 'A7|A8'))).name});
+num_C_samples = length({fileList(~cellfun('isempty', regexp({fileList.name}, 'A1|A5'))).name});
+
+% Get full file paths
+fullFilePaths = fullfile({filteredFileList.folder}, {filteredFileList.name});
+
+% Create FileSet
+fs = matlab.io.datastore.FileSet(string(fullFilePaths));
+imds_test = imageDatastore(fs);
+imds_test.Labels = categorical([repmat({'HF'}, num_HF_samples, 1); repmat({'C'}, num_C_samples, 1)]);
+
+% Training set
+filteredFileList = fileList(~cellfun('isempty', regexp({fileList.name}, 'A2|A3|A4|A6|A9|A10')));
+num_HF_samples = length({fileList(~cellfun('isempty', regexp({fileList.name}, 'A6|A9|A10'))).name});
+num_C_samples = length({fileList(~cellfun('isempty', regexp({fileList.name}, 'A2|A3|A4'))).name});
+
+% Get full file paths
+fullFilePaths = fullfile({filteredFileList.folder}, {filteredFileList.name});
+
+% Create FileSet
+fs_train = matlab.io.datastore.FileSet(string(fullFilePaths));
 imds_train = imageDatastore(fs_train);
-imds_train.Labels = categorical([repmat({'HF'}, 3*num_slices, 1); repmat({'C'}, 3*num_slices, 1)]);
+imds_train.Labels = categorical([repmat({'HF'}, num_HF_samples, 1); repmat({'C'}, num_C_samples, 1)]);
+
 
 dataTrain = imds_train;
 dataTest = imds_test;
+size(imds_test.Labels)
 
 
 % Split the training set into training and validation sets for k-fold cross-validation
@@ -171,7 +190,7 @@ end
 layers = layerGraph();
 
 % Input layer
-il = imageInputLayer(imageSize,'Name','input');
+il = imageInputLayer(imageSize,'Name','input','Normalization','zscore');
 % il = inputLayer(inputSizeTrain,inputFormat);
 
 % Main branch
@@ -189,6 +208,7 @@ pool2 = maxPooling2dLayer(2, 'Stride', 2, 'Name', 'pool2');
 cv3 = convolution2dLayer(3,outputChannels,'Padding','same','Name','cv3',WeightsInitializer='he');
 bn3 = batchNormalizationLayer('Name', 'bn3');
 relu3 = reluLayer('Name', 'relu3');
+drop3 = dropoutLayer(0.3,'Name','drop3');
 pool3 = maxPooling2dLayer(2, 'Stride', 2, 'Name', 'pool3');
 
 
@@ -196,7 +216,7 @@ pool3 = maxPooling2dLayer(2, 'Stride', 2, 'Name', 'pool3');
 flatten = flattenLayer('Name', 'flatten');
 
 fc3 = fullyConnectedLayer(numClasses, 'Name', 'fc3');
-softmax = softmaxLayer('Name', 'softmax');
+sigmoid = sigmoidLayer('Name', 'sigmoid');
 
 % **Construct the layer graph**
 layers = addLayers(layers, il);
@@ -211,10 +231,11 @@ layers = addLayers(layers, pool2);
 layers = addLayers(layers, cv3);
 layers = addLayers(layers, bn3);
 layers = addLayers(layers, relu3);
+layers = addLayers(layers, drop3);
 layers = addLayers(layers, pool3);
 layers = addLayers(layers,flatten);
 layers = addLayers(layers, fc3);
-layers = addLayers(layers, softmax);
+layers = addLayers(layers, sigmoid);
 
 
 
@@ -230,10 +251,11 @@ layers = connectLayers(layers, 'relu2','pool2');
 layers = connectLayers(layers, 'pool2','cv3');
 layers = connectLayers(layers, 'cv3', 'bn3');
 layers = connectLayers(layers, 'bn3', 'relu3');
-layers = connectLayers(layers, 'relu3', 'pool3');
+layers = connectLayers(layers, 'relu3', 'drop3');
+layers = connectLayers(layers, 'drop3', 'pool3');
 layers = connectLayers(layers, 'pool3','flatten');
 layers = connectLayers(layers, 'flatten', 'fc3');
-layers = connectLayers(layers, 'fc3', 'softmax');
+layers = connectLayers(layers, 'fc3', 'sigmoid');
 
 
 
@@ -250,27 +272,36 @@ options = trainingOptions("rmsprop", ...
     Metrics="accuracy", ...
     GradientThresholdMethod="l2norm",...
     GradientThreshold=1,...
-    MaxEpochs=100,...
+    MaxEpochs=120,...
     Shuffle="every-epoch",...
     MiniBatchSize=16,...
-    InitialLearnRate=0.00001,...
+    InitialLearnRate=0.0000001,...
     ValidationData=dataTest,...
-    Verbose=true);
+    Verbose=false,...
+    InputDataFormats=inputFormat,...
+    L2Regularization=0.00001,...
+    ValidationFrequency=2, ...
+    ValidationPatience=200,...
+    LearnRateSchedule = "piecewise",...
+    LearnRateDropFactor=0.2,...
+    LearnRateDropPeriod=50);
 
 
 
 
-[trainednet, info] = trainnet(dataTrain, net, lossFcn, options)
-% save('trainednet.mat','trainednet')
-% load('trainednet.mat','trainednet')
+% [trainednet, info] = trainnet(dataTrain, net, lossFcn, options)
+% save('C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\trainednet_RR_MAP_24h_1h-bySheep.mat','trainednet')
+load('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/PESimages/RR_MAP_1hr/trainednet_CO_CoBF_30m-bySheep.mat','trainednet')
+% load('C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\trainednet_RR_MAP_24h_1hwindow.mat','trainednet')
+
 
 % This saves gui as image but doesn't seem to work if verbose=true in
 % trainnet
-% h= findall(groot,'Type','Figure');
-% %searching fig tag for Training Progress
+h= findall(groot,'Type','Figure');
+%searching fig tag for Training Progress
 % for i=1: size(h,1)
 %     if strcmp(h(i).Tag,'DEEPMONITOR_UIFIGURE')
-%        savefig(h(i),"TrainedTest.fig");
+%        savefig(h(i),"TrainedTest-30mwindow-24h-CO-CoBF.fig");
 %        break
 %     end
 % end
@@ -284,6 +315,17 @@ for i = 1:num_samples
     scores(:,i) = predict(trainednet,xx);
 end
 
+scores
+
+% plot AUC
+[X,Y,T,AUC] = perfcurve(dataTest.Labels, scores(2,:), 'HF');
+figure;
+plot(X,Y)
+xlabel('False positive rate') 
+ylabel('True positive rate')
+title('ROC for Classification by Logistic Regression')
+saveas(gcf,'AUC.png')
+
 % Convert scores to labels
 for i = 1:num_samples
     if scores(1,i) > scores(2,i)
@@ -292,6 +334,9 @@ for i = 1:num_samples
         label{i} = 'HF';
     end
 end
+
+% plot confusion matrix
+confusionchart(dataTest.Labels, label);
 
 % metrics for test set
 % positive is considered heart failure
@@ -349,24 +394,28 @@ interp_idx = 1:num_labels;
 
 for i = 1:num_labels
     X_interp = imread(dataTest.Files{interp_idx(i)});
+    size(X_interp)
     label_interp = dataTest.Labels(interp_idx(i));
-    load('label.mat','label_interp')
+    % load('label.mat','label_interp')
     % These only work with image data: 
-    scoreMap = gradCAM(net,X_interp,label_interp); % Doesn't work when the label is 'C' because it's network activation for a given label
+    scoreMap = gradCAM(trainednet,X_interp,label_interp); % Doesn't work when the label is 'C' because it's network activation for a given label
 
     % Plot overlaid figure
     % Extract subject number and time window from filename
-    interp_name = dataTest.Files{interp_idx(i)};
+    interp_name = dataTest.Files{interp_idx(i)}
 
     % Find A identifier in filename
     Aidx = find(interp_name == 'A');
-    subjectID = str2num(interp_name(Aidx(2) + 1));
-    Sidx = find(interp_name == 'S');
+    subjectID = str2num(interp_name(Aidx(1) + 1));
+    Sidx = find(interp_name == 'S')
     sampleID = str2num(interp_name(Sidx + 1));
     % Check for 2 digit sample number
     if ~isempty(str2num(interp_name(Sidx + 2)))
         sampleID = str2num(interp_name(Sidx + 1: Sidx + 2));
     end
+
+    subjectID
+    sampleID
 
 
     figure;
@@ -381,7 +430,8 @@ for i = 1:num_labels
     colormap("jet")
 
     set(gcf,'Position',[0 0 800 500])
-    filename = ['gradCAM_A' num2str(subjectID) '_S' num2str(sampleID) '.png'];
+    % filename = ['C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\GradCAM-24h-CO-CoBF-split-by-animal-reflect-smooth-1\gradCAM_A' num2str(subjectID) '_S' num2str(sampleID) '.png'];
+    filename = ['/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/PESimages/GradCAM-24h-CO-CoBF-30mwindow-split-by-animal-PDF\gradCAM_A' num2str(subjectID) '_S' num2str(sampleID) '.png'];
     saveas(gcf,filename)
 end
 

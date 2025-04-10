@@ -2,7 +2,7 @@ function [meanP,maxP,medianP,stdP,meanTE] = calcTE(PES)
 % Calculate transition energy
 addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
 [num_slices,num_subjects] = size(PES);
-
+num_slices = 1;
 % Preallocate
 meanP = zeros(num_slices,num_subjects);
 maxP = zeros(num_slices,num_subjects);
@@ -91,8 +91,14 @@ boxchart(ydata, 'GroupByColor', xgroupdata);
 hold on;
 
 % Plot raw data points directly above their corresponding box plots
-xHF = 1.25*ones(size(meanP_HF(:)));
-xCtrl = 0.75 * ones(size(meanP_ctrl(:)));
+a = -0.1;
+b = 0.1;
+n = numel(meanP_HF);
+jitterHF = a + (b-a).*rand(n,1);
+n = numel(meanP_ctrl);
+jitterCtrl = a + (b-a).*rand(n,1);
+xHF = 1.25*ones(size(meanP_HF(:))) + jitterHF;
+xCtrl = 0.75 * ones(size(meanP_ctrl(:))) + jitterCtrl;
 
 scatter(xHF, meanP_HF(:), 'r', 'filled', 'MarkerFaceAlpha', 0.5);
 scatter(xCtrl, meanP_ctrl(:), 'b', 'filled', 'MarkerFaceAlpha', 0.5);
@@ -103,7 +109,7 @@ ylabel('Mean Prominence');
 legend({'Control','HF'}, 'Location', 'best');
 hold off;
 set(gca,'FontSize',16)
-saveas(gcf,'Mean_prominence_12min.png')
+saveas(gcf,'Mean_prominence_1hr_CO_CoBF.png')
 
 % Median prominence
 disp('Median prominence')
@@ -135,7 +141,7 @@ ylabel('Median prominence');
 legend({'Control','HF'}, 'Location', 'best');
 hold off;
 set(gca,'FontSize',16)
-saveas(gcf,'Median_prominence_12min.png')
+saveas(gcf,'Median_prominence_1hr_CO_CoBF.png')
 
 % Max prominence
 disp('Max prominence')
@@ -172,7 +178,7 @@ ylabel('Max Prominence');
 legend({'Control','HF'}, 'Location', 'best');
 hold off;
 set(gca,'FontSize',16)
-saveas(gcf,'Max_prominence_12min.png')
+saveas(gcf,'Max_prominence_1hr_CO_CoBF.png')
 
 % Std of prominence
 disp('Standard deviation of prominence')
@@ -209,7 +215,7 @@ ylabel('Standard deviation of prominence');
 legend({'Control','HF'}, 'Location', 'best');
 hold off;
 set(gca,'FontSize',16)
-saveas(gcf,'Std_prominence_12min.png')
+saveas(gcf,'Std_prominence_1hr_CO_CoBF.png')
 
 
 disp('Mean transition energy')
@@ -246,5 +252,5 @@ ylabel('Mean transition energy');
 legend({'Control','HF'}, 'Location', 'best');
 hold off;
 set(gca,'FontSize',16)
-saveas(gcf,'Mean_TE_12min.png')
+saveas(gcf,'Mean_TE_1hr_CO_CoBF.png')
 end

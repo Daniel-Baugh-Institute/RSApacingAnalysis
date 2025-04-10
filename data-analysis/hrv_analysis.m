@@ -36,24 +36,29 @@ mhrv_init()
 % HRV analysis
 % Allow override of number of slices
 varargin
-override = varargin{1};
-if override > num_slices
+if nargin > 1
+    num_slices = override;
+    if override > num_slices
     disp('Error: Override number of time windows entered is greater than the number of time windows in the data set')
     return
-elseif nargin > 1
-    num_slices = override;
+    end
 end
+
 
 for jj = 1:num_subjects
     for i = 1:num_slices
+        
         RRint = data(i,jj).RRint;
 
         %Filter out RR interval > 1500 ms
         idx2rm = find(RRint > 1.5);
         RRint(idx2rm) = [];
-
+        
+        if ~isempty(RRint)
         % time domain metrics
         filename = ['hrv_time' num2str(jj) '.png'];
+        size(RRint)
+        any(isnan(RRint))
         [ hrv_td, plot_data ] = mhrv.hrv.hrv_time( RRint, filename );
         hrv(i,jj).hrv_td = hrv_td;
 
@@ -70,6 +75,13 @@ for jj = 1:num_subjects
         % fragmentation analysis
         [ hrv_frag ] = mhrv.hrv.hrv_fragmentation( RRint );
         hrv(i,jj).hrv_frag = hrv_frag;
+        else
+            sprintf('Sheep %d, time window %d is empty',jj,i)
+            hrv(i,jj).hrv_td = NaN;
+            hrv(i,jj).hrv_fd = NaN;
+            hrv(i,jj).hrv_nl = NaN;
+            hrv(i,jj).hrv_frag = NaN;
+        end
 
     end
 end
