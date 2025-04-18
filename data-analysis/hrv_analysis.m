@@ -15,7 +15,6 @@ function hrv = hrv_analysis(data,varargin)
 %   platform for heart rate variability analysis of mammalian
 %   electrocardiographic data.’ Frontiers in Physiology.
 
-
 addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
 [num_slices, num_subjects] = size(data);
 
@@ -44,8 +43,9 @@ if nargin > 1
     end
 end
 
-
+AIDs = [1:10 13 15 17 19 21 23 25 27 29 31 34]; 
 for jj = 1:num_subjects
+
     for i = 1:num_slices
         
         RRint = data(i,jj).RRint;
@@ -56,19 +56,17 @@ for jj = 1:num_subjects
         
         if ~isempty(RRint)
         % time domain metrics
-        filename = ['hrv_time' num2str(jj) '.png'];
-        size(RRint)
-        any(isnan(RRint))
+        filename = ['./plots_hrv/hrv_time_paced' num2str(AIDs(jj)) '.png'];
         [ hrv_td, plot_data ] = mhrv.hrv.hrv_time( RRint, filename );
         hrv(i,jj).hrv_td = hrv_td;
 
         % frequency domain metrics
-        filename = {['hrv_fd_spectrum' num2str(jj) '.png'],['hrv_fd_beta' num2str(jj) '.png']};
+        filename = {['./plots_hrv/hrv_fd_spectrum_paced' num2str(AIDs(jj)) '.png'],['./plots_hrv/hrv_fd_beta_paced' num2str(jj) '.png']};
         [ hrv_fd, pxx, f_axis, plot_data ] = mhrv.hrv.hrv_freq( RRint, filename );
         hrv(i,jj).hrv_fd = hrv_fd;
 
         % nonlinear analysis
-        filename = ['hrv_nonlinear' num2str(jj) '.png'];
+        filename = ['hrv_nonlinear_paced' num2str(AIDs(jj)) '.png'];
         [ hrv_nl, plot_data ] = mhrv.hrv.hrv_nonlinear( RRint, filename );
         hrv(i,jj).hrv_nl = hrv_nl;
 

@@ -7,14 +7,28 @@ function hrv_timeseries(hrv)
 
 addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
 
+%% CHANGE THIS SECTION FOR DIFFERENT DATA INPUTS
+% Compare HRV metrics for HF and control animals
+HFidx = 1:5;
+ctrlIdx = 6:10;
+timevec = 0:0.5:30;%0:12:12*(num_slices-1);
+
+
+% Compare HRV metrics for expanded dataset with extra HF samples
+HFidx = [1:4 10 13 15 17 19 21 23 25 27 29 31 34];
+ctrlIdx = 5:9;
+AIDs = [1:10 13 15 17 19 21 23 25 27 29 31 34]; 
+
+num_subjects = sum(numel(HFidx), numel(ctrlIdx));
+%%
+
+
 hrv_td = hrv.hrv_td;
 hrv_fd = hrv.hrv_fd;
 hrv_nl = hrv.hrv_nl;
 hrv_frag = hrv.hrv_frag;
 
-% Compare HRV metrics for HF and control animals
-HFidx = 1:5;
-ctrlIdx = 6:10;
+
 
 % Get metric names from table
 headers_td = hrv_td.Properties.VariableNames;
@@ -34,24 +48,24 @@ labels = metrics;
 labels = strrep(labels, '_', ' ');
 % HFval = zeros(1,length(HFidx));
 % ctrlVal = zeros(1,length(ctrlIdx));
-timevec = 0:0.5:30;%0:12:12*(num_slices-1);
+
 
 for m = 1:length(metrics)
     figure;
     for j = 1:num_subjects
         for k = 1:num_slices
-            name = ['hrv(k,j).' struct_names{p} '(1,m)'];
+            name = ['hrv(k,AIDs(j)).' struct_names{p} '(1,m)'];
             try
                 timeseries_metric(k) = table2array(eval(name));
             catch
                 timeseries_metric(k) = NaN;
-                sprintf('NaN for sheep %d, time window %d',j,k)
+                sprintf('NaN for sample %d, time window %d',AIDs(j),k)
                 disp('metric: ')
                 metrics{m}
             end
         end
         % plot metric
-        if j < 6 % HF
+        if AIDs(j) < 6 || AIDs(j) > 10 % HF
             color = 'r';
             label = 'HF';
         else
@@ -76,7 +90,7 @@ for m = 1:length(metrics)
     legend({'HF','Control'}, 'Location', 'best');
     hold off;
     set(gca,'FontSize',16)
-    saveas(gcf,[metrics{m} '_30m_timeseries.png'])
+    saveas(gcf,[metrics{m} '_30m_paced_timeseries.png'])
 
 
 end

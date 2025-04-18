@@ -21,16 +21,20 @@ num_points = round(t_seconds * 1000);
 num_slices = 60;%25;%
 
 
-for i = 1:length(filesToRead)
+for i = 19:19%length(filesToRead)
     vars = readRamchandraData(filesToRead{i});
 
     % Handle missing CoBF in one sample
-    if strcmp(filesToRead{i}, '2453 baseline no CoBF.mat')
+    if strcmp(filesToRead{i}, '2453 baseline no CoBF.mat') 
         num_channels = 3;
     else
         num_channels = 4;
     end
     for k = 1:num_slices
+        tic
+        % if k > 39
+        %     continue
+        % end
         % extract time vector for CO, CoBF, BP (HR has different sampling rate)
         structName = vars{1};
         struct = eval(structName);
@@ -50,9 +54,16 @@ for i = 1:length(filesToRead)
         data(k,i).time = timeRaw;
         timeHRs = data(k,i).time./60./60;
 
+
         % extract data from each channel
-        for j = 1:num_channels
+        num_channels_temp = num_channels;
+        tiledlayout(4,1)
+        for j = 1:num_channels_temp
             structName = vars{j};
+            if strcmp(structName, 'file')
+                num_channels_temp = num_channels_temp + 1;
+                continue
+            end
             struct = eval(structName);
 
             % debugging
@@ -65,7 +76,7 @@ for i = 1:length(filesToRead)
                 disp(j)
             end
 
-            if strcmp('BP',struct.title)
+            if strcmp('BP',struct.title) || strcmp('BP: 1',struct.title) || strcmp('1.BP',struct.title)
                 try
                     data(k,i).BP = struct.values(start(k):stop(k));
                 catch
@@ -78,45 +89,60 @@ for i = 1:length(filesToRead)
                 % average. Usually not many points lost in BP signal and it
                 % helps keep alignment with RR interval. What do other
                 % literature sources do with noise in signal?
-                % rm_idx = find(data(i).BP < 0);
-                % data(i).BP(rm_idx) = [];
-                % num_points_removed = length(rm_idx);
-                % time_removed = num_points_removed*0.001;
-                % sprintf('No signal was detected in the BP data in animal %d.',i)
-                % sprintf('%d points were removed (%0.3f seconds)',num_points_removed,time_removed)
+               
 
                 % Adjust time vector to account for missing signal
-                timeHRs_BP = timeHRs;
+                if isnan(data(k,i).BP)
+                    timeHRs_BP = NaN;
+                else
+                    timeHRs_BP = timeHRs;
+                end
+
                 data(k,i).timeHRs_BP = timeHRs_BP;
+                nexttile;
+                plot(timeHRs_BP,data(k,i).BP)
+                xlabel('Time (hrs)')
+                ylabel({'Blood pressure'; '(mm Hg)'})
                 % timeHRs_BP(rm_idx) = [];
 
                 % Calculate moving average mean
                 M_BP = movmean(data(k,i).BP,kfkb);
 
-            elseif strcmp('CoBF',struct.title)
+            elseif strcmp('CoBF',struct.title) || strcmp('1.CoBF',struct.title)
                 try
                     data(k,i).CoBF = struct.values(start(k):stop(k));
                     timeHRs_CoBF = timeHRs;
                 catch
                     sprintf('Data missing for sheep %d, time window %d, CoBF', i, k)
                     data(k,i).CoBF = NaN;
-                    timeHRs_CoBF = timeHRs;
+                    timeHRs_CoBF = NaN;
                 end
 
-            elseif strcmp('CO',struct.title)
+                nexttile;
+                plot(timeHRs_CoBF,data(k,i).CoBF)
+                xlabel('Time (hrs)')
+                ylabel({'Coronary blood'; 'flow (mL/min)'})
+
+            elseif strcmp('CO',struct.title) || strcmp('1.CO',struct.title)
                 try
                     data(k,i).CO = struct.values(start(k):stop(k));
                     timeHRs_CO = timeHRs;
                 catch
                     sprintf('Data missing for sheep %d, time window %d, CO', i, k)
                     data(k,i).CO = NaN;
-                    timeHRs_CO = timeHRs;
+                    timeHRs_CO = NaN;
                 end
 
+                nexttile;
+                plot(timeHRs_CO,data(k,i).CO)
+                xlabel('Time (hrs)')
+                ylabel({'Cardiac output'; '(L/min)'})
 
-            elseif strcmp('HR',struct.title) || strcmp('HR(Peak)',struct.title)
+
+
+            elseif strcmp('HR',struct.title) || strcmp('HR(Peak)',struct.title) || strcmp('1.HR',struct.title)
                 tempRRtime = struct.times; % s
-                % disp('start (s)')
+                % disp('start (s)')%
                 % start(k)/1000
                 % disp('stop (s)')
                 % stop(k)/1000
@@ -127,6 +153,12 @@ for i = 1:length(filesToRead)
                     RRidx_slice = find(tempRRtime > start(k)/1000 & tempRRtime < stop(k)/1000);
                     data(k,i).RRtime = tempRRtime(RRidx_slice);%struct.times; % seconds (time heart beat occurs)
                     data(k,i).RRint = diff(data(k,i).RRtime); % seconds (heart beat length)
+                    timeHRs_RR = data(k,i).RRtime/60./60;
+                    nexttile;
+                stairs(timeHRs_RR(2:end),data(k,i).RRint)
+                xlabel('Time (hrs)')
+                ylabel('RR interval (s)')
+
                     if isempty(data(k,i).RRint)
 
                         % length(data(k,i).RRtime)
@@ -139,7 +171,21 @@ for i = 1:length(filesToRead)
                     sprintf('Data missing for sheep %d, time window %d, RR', i, k)
                     data(k,i).RRtime = NaN;
                     data(k,i).RRint = NaN;
+                    timeHRs_RR = NaN;
+                    nexttile;
+                stairs(timeHRs_RR,data(k,i).RRint)
+                xlabel('Time (hrs)')
+                ylabel('RR interval (s)')
                 end
+
+                
+                
+                plotNameBySheep = ['./raw-data-plots/plot_raw_data_paced_' num2str(i) '_S' num2str(k) '.png'];
+                saveas(gcf,plotNameBySheep)%
+
+                plotNameBySheep = ['./raw-data-plots/plot_window_paced_' num2str(i) '_S' num2str(k) '.png'];
+                saveas(gcf,plotNameBySheep)
+
             else
                 disp('Title is not BP, CoBF, CO, or HR.')
                 disp('Animal number: ')
@@ -150,7 +196,14 @@ for i = 1:length(filesToRead)
                 disp(j)
             end
 
+        end
 
+        % Skip to next animal if data for all channels is missing
+        if sum(isnan(data(k,i).RRint)) == 1 && ...
+                sum(isnan(data(k,i).CO)) == 1 && ...
+                sum(isnan(data(k,i).BP)) == 1 && ...
+                sum(isnan(data(k,i).CoBF)) == 1
+            continue
         end
 
         % CoBF missing for sample 10
@@ -170,25 +223,35 @@ for i = 1:length(filesToRead)
             sprintf('%d points removed because of negative signal for animal %d CoBF',length(CoBF_idx_negsignal),i)
             idx_negsignal = [CoBF_idx_negsignal CoBF_idx_negsignal]; % combine indices for CO and CoBF so they stay aligned for potential energy surface
             timeHRs_CoBF(idx_negsignal) = [];
-            if i ~= 10
-                data(k,i).CoBF(idx_negsignal) = [];
+            if ~strcmp(filesToRead{i}, '2453 baseline no CoBF.mat') ...
+                && ~strcmp(filesToRead{i}, '2229 mono day 7 CoBF poor signal.mat')...
+                && ~strcmp(filesToRead{i},'2048 RSA day 14 no CoBF.mat')
+                try
+                    data(k,i).CoBF(idx_negsignal) = [];
+                    timeHRs_CO(idx_negsignal) = [];
+                    data(k,i).CO(idx_negsignal) = [];
+                catch
+                    disp('CoBF or CO empty')
+                end
             end
-            timeHRs_CO(idx_negsignal) = [];
-            data(k,i).CO(idx_negsignal) = [];
+            
 
             % Remove sections with no signal
             % CO
             M = movmean(data(k,i).CO,[0 k_avg],"Endpoints",'discard');
-            if i == 3 % remove lost signal in animal 3
-                thresh = 3;
-            else
-                thresh = -5;
-            end
+            % if i == 3 % remove lost signal in animal 3
+            %     thresh = 3;
+            % else
+                thresh = -10;
+            % end
             CO_idx_nosignal = find(M < thresh);
 
 
             %CoBF
-            if i ~= 10
+            if ~strcmp(filesToRead{i}, '2453 baseline no CoBF.mat') ...
+                && ~strcmp(filesToRead{i}, '2229 mono day 7 CoBF poor signal.mat')...
+                && ~strcmp(filesToRead{i},'2048 RSA day 14 no CoBF.mat')
+                
                 M = movmean(data(k,i).CoBF,[0 k_avg],"Endpoints",'discard');
                 CoBF_idx_nosignal = find(M < -5);
                 idx_nosignal = [ CoBF_idx_nosignal CO_idx_nosignal];
@@ -199,7 +262,9 @@ for i = 1:length(filesToRead)
             if ~isempty(idx_nosignal)
                 idx2rm_start = min(idx_nosignal);
                 idx2rm = idx2rm_start:1:length(data(k,i).CO);
-                if i ~= 10
+                if ~strcmp(filesToRead{i}, '2453 baseline no CoBF.mat') ...
+                && ~strcmp(filesToRead{i}, '2229 mono day 7 CoBF poor signal.mat')...
+                && ~strcmp(filesToRead{i},'2048 RSA day 14 no CoBF.mat')
                     data(k,i).CoBF(idx2rm) = [];
                 end
                 data(k,i).CO(idx2rm) = [];
@@ -210,13 +275,15 @@ for i = 1:length(filesToRead)
                 data(k,i).timeHRs_CO = timeHRs_CO;
             end
 
-            if i ~= 10
-                M_CoBF = movmean(data(k,i).CoBF,kfkb);
-                data(k,i).timeHRs_CO = timeHRs_CO;
+            if ~strcmp(filesToRead{i}, '2453 baseline no CoBF.mat') ...
+                && ~strcmp(filesToRead{i}, '2229 mono day 7 CoBF poor signal.mat')...
+                && ~strcmp(filesToRead{i},'2048 RSA day 14 no CoBF.mat')
+                    M_CoBF = movmean(data(k,i).CoBF,kfkb);
+                    data(k,i).timeHRs_CO = timeHRs_CO;
             end
 
         end
-
+        
         % Calculate moving average mean
         M_CO = movmean(data(k,i).CO,kfkb);
 
@@ -228,9 +295,11 @@ for i = 1:length(filesToRead)
         length(data(k,i).BP)
 
         % Vectorized computation using arrayfun
-        if i ~= 10
+        if ~strcmp(filesToRead{i}, '2453 baseline no CoBF.mat') ...
+                && ~strcmp(filesToRead{i}, '2229 mono day 7 CoBF poor signal.mat')...
+                && ~strcmp(filesToRead{i},'2048 RSA day 14 no CoBF.mat')
             try
-            data(k,i).MAP = arrayfun(@(s, e) mean(data(k,i).BP(timeHRs_BP(1:end-1) > s & timeHRs_BP(1:end-1) < e)), RR_start/60/60, RR_stop/60/60);
+                data(k,i).MAP = arrayfun(@(s, e) mean(data(k,i).BP(timeHRs_BP(1:end-1) > s & timeHRs_BP(1:end-1) < e)), RR_start/60/60, RR_stop/60/60);
             catch
                 data(k,i).MAP = NaN;
             end
@@ -259,97 +328,111 @@ for i = 1:length(filesToRead)
 
 
     % stats on data
-    %     meanRR(i) = mean(data(i).RRint);
-    %     meanMAP(i) = mean(data(i).MAP);
-    %     meanBP(i) = mean(data(i).BP);
-    %     meanCO(i) = mean(data(i).CO);
-    %     meanCoBF(i) = mean(data(i).CoBF);
-    %
-    %
-    %
-    %     % Set up plot
-    %     tiledlayout(num_channels,1)
-    %     plotName = ['plot_raw_data_' num2str(i) '.png'];
-    %     timeHRs_RR = data(i).RRtime/60./60;
-    %     nexttile;
-    %     stairs(timeHRs_RR(2:end),data(i).RRint,'HandleVisibility','off')
-    %     hold on
-    %     plot(timeHRs_RR(2:end),movmean(data(i).RRint,kfkb),'r')
-    %     legend('5 min moving avg')
-    %     ylabel('RR interval (s)')
-    %     hold off
-    %
-    %     nexttile;
-    %     if length(timeHRs_BP) == length(data(i).BP)
-    %         plot(timeHRs_BP,data(i).BP)
-    %     elseif (length(timeHRs_BP) - 1) == length(data(i).BP)
-    %         timeHRs_BP = timeHRs_BP(1:end-1);
-    %         plot(timeHRs_BP,data(i).BP)
-    %         disp('time vector was one data point longer than BP')
-    %     elseif (length(timeHRs_BP) + 1) == length(data(i).BP)
-    %         disp('time vector was one data point shorter than BP')
-    %         timeHRs_BP = [timeHRs_BP, timeHRs_BP(end) + 0.001];
-    %         plot(timeHRs_BP,data(i).BP)
-    %     else
-    %         length(timeHRs_BP)
-    %         length(data(i).BP)
-    %         sprintf('BP and time vectors not the same length for animal %d',i)
-    %     end
-    %     hold on
-    %     plot(timeHRs_BP,M_BP,'r-')
-    %     ylabel({'Blood pressure'; '(mm Hg)'})
-    %     hold off
-    %
-    %     nexttile;
-    %     if length(timeHRs_CO) == length(data(i).CO)
-    %         plot(timeHRs_CO,data(i).CO)
-    %     elseif (length(timeHRs_CO) - 1) == length(data(i).CO)
-    %         timeHRs_CO = timeHRs_CO(1:end-1);
-    %         plot(timeHRs_CO,data(i).CO)
-    %         disp('time vector was one data point longer than CO')
-    %     elseif (length(timeHRs_CO) + 1) == length(data(i).CO)
-    %         disp('time vector was one data point shorter than CO')
-    %         timeHRs_CO = [timeHRs_CO, timeHRs_CO(end) + 0.001];
-    %         plot(timeHRs_CO,data(i).CO)
-    %     else
-    %         sprintf('CO and time vectors not the same length for animal %d',i)
-    %         length(timeHRs_CO)
-    %         length(data(i).CO)
-    %     end
-    %     hold on
-    %     length(timeHRs_CO)
-    %     length(M_CO)
-    %     plot(timeHRs_CO,M_CO,'r-')
-    %     ylabel({'Cardiac output'; '(L/min)'})
-    %     hold off
-    %
-    %     if num_channels > 3
-    %         nexttile;
-    %         if length(timeHRs_CoBF) == length(data(i).CoBF)
-    %             plot(timeHRs_CoBF,data(i).CoBF)
-    %         elseif (length(timeHRs_CoBF) - 1) == length(data(i).CoBF)
-    %             timeHRs_CoBF = timeHRs_CoBF(1:end-1);
-    %             plot(timeHRs_CoBF,data(i).CoBF)
-    %             disp('time vector was one data point longer than CoBF')
-    %         elseif (length(timeHRs_CoBF) + 1) == length(data(i).CoBF)
-    %             disp('time vector was one data point shorter than CoBF')
-    %             timeHRs_CoBF = [timeHRs_CoBF, timeHRs_CoBF(end) + 0.001];
-    %             plot(timeHRs_CoBF,data(i).CoBF)
-    %         else
-    %             sprintf('CoBF and time vectors not the same length for animal %d',i)
-    %             length(timeHRs_CoBF)
-    %             length(data(i).CoBF)
-    %         end
-    %         ylim([-5 inf])
-    %         ylabel({'Coronary blood'; 'flow (mL/min)'})
-    %
-    %         hold on
-    %         plot(timeHRs_CoBF,M_CoBF,'r-')
-    %     end
-    %
-    %     xlabel('Time (hrs)')
-    %
-    %     saveas(gcf,plotName)
+    try
+        meanRR(i) = mean(data(i).RRint);
+        meanMAP(i) = mean(data(i).MAP);
+        meanBP(i) = mean(data(i).BP);
+        meanCO(i) = mean(data(i).CO);
+        if ~strcmp(filesToRead{i}, '2453 baseline no CoBF.mat') ...
+                && ~strcmp(filesToRead{i}, '2229 mono day 7 CoBF poor signal.mat')...
+                && ~strcmp(filesToRead{i},'2048 RSA day 14 no CoBF.mat')
+            meanCoBF(i) = mean(data(i).CoBF); %
+        else
+            meanCoBF(i) = NaN;
+        end
+    catch
+        meanCO(i) = NaN;
+    end
+
+        % Set up plot
+        % if k > 39
+        %     continue
+        % end
+
+        tiledlayout(num_channels,1)
+        plotName = ['./raw-data-plots/plot_filtered_data_paced' num2str(i) '.png'];
+        timeHRs_RR = data(k,i).RRtime/60./60;
+        nexttile;
+        stairs(timeHRs_RR(2:end),data(k,i).RRint,'HandleVisibility','off')
+        hold on
+        plot(timeHRs_RR(2:end),movmean(data(k,i).RRint,kfkb),'r')
+        legend('5 min moving avg')
+        ylabel('RR interval (s)')
+        hold off
+
+        nexttile;
+        if length(timeHRs_BP) == length(data(k,i).BP)
+            plot(timeHRs_BP,data(k,i).BP)
+        elseif (length(timeHRs_BP) - 1) == length(data(k,i).BP)
+            timeHRs_BP = timeHRs_BP(1:end-1);
+            plot(timeHRs_BP,data(k,i).BP)
+            disp('time vector was one data point longer than BP')
+        elseif (length(timeHRs_BP) + 1) == length(data(k,i).BP)
+            disp('time vector was one data point shorter than BP')
+            timeHRs_BP = [timeHRs_BP, timeHRs_BP(end) + 0.001];
+            plot(timeHRs_BP,data(k,i).BP)
+        else
+            length(timeHRs_BP)
+            length(data(k,i).BP)
+            sprintf('BP and time vectors not the same length for animal %d',i)
+        end
+        hold on
+        plot(timeHRs_BP,M_BP,'r-')
+        ylabel({'Blood pressure'; '(mm Hg)'})
+        hold off
+
+        nexttile;
+        if length(timeHRs_CO) == length(data(k,i).CO)
+            plot(timeHRs_CO,data(k,i).CO)
+        elseif (length(timeHRs_CO) - 1) == length(data(k,i).CO)
+            timeHRs_CO = timeHRs_CO(1:end-1);
+            plot(timeHRs_CO,data(k,i).CO)
+            disp('time vector was one data point longer than CO')
+        elseif (length(timeHRs_CO) + 1) == length(data(k,i).CO)
+            disp('time vector was one data point shorter than CO')
+            timeHRs_CO = [timeHRs_CO, timeHRs_CO(end) + 0.001];
+            plot(timeHRs_CO,data(k,i).CO)
+        else
+            sprintf('CO and time vectors not the same length for animal %d',i)
+            length(timeHRs_CO)
+            length(data(k,i).CO)
+        end
+        hold on
+        length(timeHRs_CO)
+        length(M_CO)
+        plot(timeHRs_CO,M_CO,'r-')
+        ylabel({'Cardiac output'; '(L/min)'})
+        hold off
+
+        if ~strcmp(filesToRead{i}, '2453 baseline no CoBF.mat') ...
+                && ~strcmp(filesToRead{i}, '2229 mono day 7 CoBF poor signal.mat')...
+                && ~strcmp(filesToRead{i},'2048 RSA day 14 no CoBF.mat')
+            nexttile;
+            if length(timeHRs_CoBF) == length(data(k,i).CoBF)
+                plot(timeHRs_CoBF,data(k,i).CoBF)
+            elseif (length(timeHRs_CoBF) - 1) == length(data(k,i).CoBF)
+                timeHRs_CoBF = timeHRs_CoBF(1:end-1);
+                plot(timeHRs_CoBF,data(k,i).CoBF)
+                disp('time vector was one data point longer than CoBF')
+            elseif (length(timeHRs_CoBF) + 1) == length(data(k,i).CoBF)
+                disp('time vector was one data point shorter than CoBF')
+                timeHRs_CoBF = [timeHRs_CoBF, timeHRs_CoBF(end) + 0.001];
+                plot(timeHRs_CoBF,data(k,i).CoBF)
+            else
+                sprintf('CoBF and time vectors not the same length for animal %d',i)
+                length(timeHRs_CoBF)
+                length(data(k,i).CoBF)
+            end
+            ylim([-5 inf])
+            ylabel({'Coronary blood'; 'flow (mL/min)'})
+
+            hold on
+            plot(timeHRs_CoBF,M_CoBF,'r-')
+        end
+
+        xlabel('Time (hrs)')
+
+        % saveas(gcf,plotName)
     %
     %     % TODO: make seasonality test its own function
     %     % Test seasonality of data
@@ -442,8 +525,27 @@ for i = 1:length(filesToRead)
     % mean(meanCO(5:10))
     % std(meanCO(5:10))
     % [h,p,ci,stats] = ttest2(meanCO(1:4),meanCO(5:10))
-
+    
+    % save after each animal
+    saveFileNameBySheep = [saveFileName '_' num2str(i) '.mat'];
+    dataBySheep = data(:,i);
+    save(saveFileNameBySheep,'dataBySheep','-v7.3')
+     
+    % Check if time exeeded and processing stuck
+    toc
+    disp('Animal')
+    disp(num2str(i))
 
 end
-save(saveFileName,'data','-v7.3')
+saveFileNameMat = [saveFileName '.mat'];
+save(saveFileNameMat,'data','-v7.3')
+disp('Saved .mat file')
+
+% stats on data
+meanRR
+meanMAP
+meanBP
+meanCO
+
+
 end

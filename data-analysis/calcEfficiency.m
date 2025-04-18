@@ -23,6 +23,12 @@ for jj = 1:num_subjects % issue with subject 6?
     for i = 1:num_slices
 
         % randomly sample RR interval
+        if length(data(i,jj).RRint) == 1 || isempty(data(i,jj).RRint)
+            work_per_beat(i,jj) = NaN;
+            efficiency_per_beat(i,jj) = NaN;
+            continue
+        end
+
         sampleIdx = randi((length(data(i,jj).RRint) - 1),[nb,1]);
         RRsample = data(i,jj).RRint(sampleIdx); % s
 
@@ -42,9 +48,16 @@ for jj = 1:num_subjects % issue with subject 6?
         % truncate the last 20 points of BP
         for k = 1:nb
             % Extract BP and CO values for the beat
-            BP_vals = data(i,jj).BP(times_BP > s(k) & times_BP < e(k)); % mmHg
-            CO_vals = data(i,jj).CO(times_CO > s(k) & times_CO < e(k))/60/1000; % Convert CO to mL/s
-            time_CO = times_CO(times_CO > s(k) & times_CO < e(k));
+            try
+                BP_vals = data(i,jj).BP(times_BP > s(k) & times_BP < e(k)); % mmHg
+                CO_vals = data(i,jj).CO(times_CO > s(k) & times_CO < e(k))/60/1000; % Convert CO to mL/s
+                time_CO = times_CO(times_CO > s(k) & times_CO < e(k));
+            catch
+                sprintf('Lines 46-48, sheep %d, window %d, k %d failed',jj,i,k)
+                BP_vals = NaN;
+                CO_vals = NaN;
+                time_CO = NaN;
+            end
 
             % Calculate cumulative volume using cumulative integral
             if ~isempty(CO_vals) && numel(CO_vals) > 1
@@ -60,7 +73,7 @@ for jj = 1:num_subjects % issue with subject 6?
             % size(CO_vals)
             % size(time_CO)
             % size(vol_vals)
-            if ~isempty(BP_vals) && numel(BP_vals) > 1 && ~any(isnan(vol_vals))
+            if ~isempty(BP_vals) && numel(BP_vals) > 1 && ~any(isnan(vol_vals)) && ~any(isnan(BP_vals))
                 work_per_beat_sample(k) = trapz(vol_vals, BP_vals(1:end-sizediff)); % mL * mmHg
             else
                 work_per_beat_sample(k) = NaN;
@@ -69,8 +82,13 @@ for jj = 1:num_subjects % issue with subject 6?
 
             % Calculate Efficiency (Work/CoBF)
             % NOTE: Is this the best measure of efficiency?
-            CoBF_vals = data(i,jj).CoBF(times_CO > s(k) & times_CO < e(k))/60; % Convert to mL/s
-            if ~isempty(CoBF_vals) && numel(CoBF_vals) > 1
+            try
+                CoBF_vals = data(i,jj).CoBF(times_CO > s(k) & times_CO < e(k))/60; % Convert to mL/s
+            catch
+                CoBF_vals = NaN;
+                disp('Warning: unable to calculate CoBF')
+            end
+            if ~isempty(CoBF_vals) && numel(CoBF_vals) > 1 && ~any(isnan(CoBF_vals))
                 efficiency_per_beat_sample(k) = work_per_beat_sample(k) / trapz(time_CO, CoBF_vals);
             else
                 efficiency_per_beat_sample(k) = NaN;
@@ -89,17 +107,33 @@ for jj = 1:num_subjects % issue with subject 6?
     % TODO: this only samples the last i, k
     work_mean(jj) = mean(work_per_beat(:,jj),'all','omitmissing');
     efficiency_mean(jj) = mean(efficiency_per_beat(:,jj),'all','omitmissing');
-    work_std(jj) = std(work_per_beat(:,jj));
-    efficiency_std(jj) = std(efficiency_per_beat(:,jj));
+
+    % Remove NaN values to calculate std
+    keepIdxWork = ~isnan(work_per_beat(:,jj));
+    work_per_beat_clean = work_per_beat(keepIdxWork,jj);
+    work_std(jj) = std(work_per_beat_clean);
+
+    keepIdxEff = ~isnan(efficiency_per_beat(:,jj));
+    efficiency_per_beat_clean = efficiency_per_beat(keepIdxEff,jj);
+    efficiency_std(jj) = std(efficiency_per_beat_clean);
 
 end
 
+% save('efficiency_30m_all.mat','work_mean',"efficiency_std","efficiency_mean","work_std")
 
-
-
+%% CHANGE HERE FOR DIFFERENT GROUP COMPARISONS %%
 % Compare work and efficiency for HF and control animals
-HFidx = 1:5;
-ctrlIdx = 6:9;
+% HFidx = 1:5;
+% ctrlIdx = 6:9;
+
+% Compare unpaced HF and RSA paced HF
+HFidx = [12 14 16 18 20 22];  % paced
+ctrlIdx = [11 13 15 17 19 21];  % unpaced
+
+% Compare unpaced HF and mono paced HF
+HFidx = [24 26 28 30 32 35];  % paced
+ctrlIdx = [23 25 27 29 31 34];  % unpaced
+% AIDs = [1:10 11 16 18 20 22 24 26 28 30 32 35]; 
 
 disp('h = 0 means no evidence that there are differences between groups')
 
