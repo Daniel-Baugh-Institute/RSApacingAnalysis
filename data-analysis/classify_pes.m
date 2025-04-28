@@ -42,16 +42,16 @@ addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/
 
 %%%%%% CHANGE THIS PART FOR CO/COBF VS RR/MAP %%%%%%%%%%%%%
 % RR and MAP grid
-% xx = 0.18:0.02:1.4;
-% yy = 70:2:200;
-% gen_location = '/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/PESimages/RR_MAP_30m_48slices/';
+xx = 0.18:0.02:1.4;
+yy = 70:2:200;
+gen_location = '/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/PESimages/RR_MAP_30m_48slices/';
 
 
 % CO and CoBF grid
-xx = 0:1:50;
-yy = 0:10:400;
-% gen_location = 'C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\RR_MAP_1hr\'; % location of image files
-gen_location = '/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/PESimages/CO_CoBF_30m_48slices/';
+% xx = 0:1:50;
+% yy = 0:10:400;
+% % gen_location = 'C:\Users\mmgee\Box\Michelle-Gee\Research\Patient-specific models\Auckland_physiology_data\RR_MAP_1hr\'; % location of image files
+% gen_location = '/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/PESimages/CO_CoBF_30m_48slices/';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 [Xpts, Ypts] = meshgrid(xx,yy);
@@ -96,7 +96,7 @@ for i = 1:length(AIDs)%num_subjects
             % Check colormap limits
             clim_save(j,:) = clim;
 
-            clim([0 33])% CO-CoBF but check for expanded dataset([0 33]) % RR-MAP, but check expanded dataset ([-1.5 22]) 
+            clim([-1.5 23])% CO-CoBF but check for expanded dataset([0 33]) % RR-MAP, but check expanded dataset ([-1.5 22]) 
             hold on
             sc(2).EdgeColor = 'none';
             sc(1).EdgeColor = 'none';

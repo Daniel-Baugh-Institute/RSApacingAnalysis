@@ -24,7 +24,7 @@ from sklearn.metrics import roc_auc_score, roc_curve
 import optuna
 
 # Set seed
-seed = 42
+seed = 42 #111# 84#
 torch.manual_seed(seed)
 random.seed(seed)
 np.random.seed(seed)
@@ -266,14 +266,14 @@ def show_gradcam_side_by_side(input_tensor, cam_tensor, save_path=None):
 
 ##### main #####
 if __name__ == "__main__":
-    test_animal_sets = np.array([[5, 13, 15, 17, 19,21],
-    [6, 13, 15, 17, 19,21],
-    [7, 13, 15, 17, 19,21],
-    [8, 13, 15, 17, 19,21],
-    [5, 13, 15, 17, 19,23],
-    [6, 13, 15, 17, 19,25],
-    [7, 13, 15, 17, 19,27],
-    [8, 13, 15, 17, 19,31]])#,
+    test_animal_sets = np.array([[5, 13, 15, 17, 19,21]])#,
+    #[6, 13, 15, 17, 19,21],
+    #[7, 13, 15, 17, 19,21],
+    #[8, 13, 15, 17, 19,21],
+    #[5, 13, 15, 17, 19,23],
+    #[6, 13, 15, 17, 19,25],
+    #[7, 13, 15, 17, 19,27],
+    #[8, 13, 15, 17, 19,31]])#,
     #[9, 13, 15, 17, 19,34]])#[5,9],[1,6],[7,4],[3,8],[2,6]]) 13, 15, 17, 19, 21, 23, 25,
     [num_folds, cols] = test_animal_sets.shape
     
@@ -346,8 +346,8 @@ if __name__ == "__main__":
         
         best_model=study.user_attrs["best_booster"]
         
-        with open(f"best_model_RR_MAP_fold{fold+1}.pkl", "wb") as f:
-            pickle.dump(best_model, f)
+        #with open(f"best_model_RR_MAP_fold{fold+1}.pkl", "wb") as f:
+        #    pickle.dump(best_model, f)
     
         # Display the best hyperparameters and accuracy
         print("Best hyperparameters:", study.best_params)
@@ -407,7 +407,7 @@ if __name__ == "__main__":
         # Train the model
         print('Training model...')
         model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler, train_loader, num_epochs=3)
-        """
+        ##########################
         
         # Evaluate model
         batch_size = study.best_params['batch_size']
@@ -486,7 +486,7 @@ if __name__ == "__main__":
         
                             print(f"GradCAM completed for Animal A{animal_id} in group {group}")
                         
-                    
+        """       
                     
 
 

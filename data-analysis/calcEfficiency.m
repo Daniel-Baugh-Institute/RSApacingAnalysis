@@ -45,7 +45,8 @@ for jj = 1:num_subjects % issue with subject 6?
         % TODO: because negative CO values are removed from the data during
         % data cleaning, the number of points in CO and BP are not the same
         % (~ 20 points less in CO than BP). For now, I'm just going to
-        % truncate the last 20 points of BP
+        % truncate the last 20 points of BP. Because we use times to
+        % extract the points, this should be fine.
         for k = 1:nb
             % Extract BP and CO values for the beat
             try
@@ -89,7 +90,7 @@ for jj = 1:num_subjects % issue with subject 6?
                 disp('Warning: unable to calculate CoBF')
             end
             if ~isempty(CoBF_vals) && numel(CoBF_vals) > 1 && ~any(isnan(CoBF_vals))
-                efficiency_per_beat_sample(k) = work_per_beat_sample(k) / trapz(time_CO, CoBF_vals);
+                efficiency_per_beat_sample(k) = work_per_beat_sample(k) / trapz(time_CO, CoBF_vals); % units of trapz(time_CO, CoBF_vals) = mL
             else
                 efficiency_per_beat_sample(k) = NaN;
                 disp('Warning: Unable to calculate Efficiency per Beat');

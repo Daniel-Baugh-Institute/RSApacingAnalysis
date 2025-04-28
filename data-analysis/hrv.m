@@ -17,13 +17,15 @@ function hrv(data)
 addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
 
 % varargin = 19;
-hrv = hrv_analysis(data);%hrv_analysis(data,varargin);
-save('hrv_30min_all_baseline.mat','hrv')
-% load('hrv_30min_paced_baseline.mat','hrv')
+% hrv = hrv_analysis(data);%hrv_analysis(data,varargin);
+% save('hrv_30min_all_baseline.mat','hrv')
+load('hrv_30min_all_baseline.mat','hrv')
+
 
 % Compare HRV metrics for HF and control animals
+% CURRENT NUM_SLICES OVERRIDE
 hrv_plot(hrv) % set varargin to 1 in hrv_analysis to get suitable hrv input
 
 % Plot HRV metrics as timeseries 
-hrv_timeseries(hrv)
+% hrv_timeseries(hrv)
 end

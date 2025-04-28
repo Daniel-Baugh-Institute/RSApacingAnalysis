@@ -60,6 +60,43 @@ hold off;
 set(gca,'FontSize',16)
 saveas(gcf,'efficiency_paced.png')
 
+% Calculate mean of delta from unpaced to paced for mono and RSA
+disp('Comparing efficiency change from unpaced to paced between mono and RSA paced groups...')
+diffMono = yMono(:,1) - yMono(:,2);
+diffRSA = yRSA(:,1) - yRSA(:,2);
+[h,p,ci,stats] = ttest2(diffMono,diffRSA)
+
+% Plot
+ydata = [diffMono; diffRSA];
+xgroupdata = [categorical(repmat({'Mono'}, 1, length(diffMono))), ....
+    categorical(repmat({'RSA'}, 1, length(diffRSA)))];
+
+figure;
+b = boxchart(ydata, 'GroupByColor', xgroupdata,'MarkerStyle','none');
+hold on;
+b(1).BoxFaceColor = 'magenta';
+b(2).BoxFaceColor = 'cyan';
+b(1).BoxFaceAlpha = 0.1;
+b(2).BoxFaceAlpha = 0.1;
+
+% Plot raw data points directly above their corresponding box plots
+a = -0.1;
+b = 0.1;
+n = numel(diffRSA);
+jitter = a + (b-a).*rand(n,1);
+xMono = 0.75*ones(size(diffMono)) + jitter;
+xRSA = 1.25 * ones(size(diffRSA)) + jitter;
+scatter(xRSA, diffRSA, 'c', 'filled', 'MarkerFaceAlpha', 0.5,'MarkerEdgeColor','b');
+scatter(xMono, diffMono, 'm', 'filled', 'MarkerFaceAlpha', 0.5,'MarkerEdgeColor','r');
+
+ax = gca;
+set(ax,'xticklabel',[])
+ylabel({'Unpaced to paced efficiency'; 'change (mm Hg)'});
+legend({'Mono','RSA'}, 'Location', 'best');
+hold off;
+set(gca,'FontSize',16)
+saveas(gcf,'efficiency_delta_box.png')
+
 %% Work
 
 % RSA paced
@@ -97,6 +134,43 @@ legend({'RSA','Mono'}, 'Location', 'best');
 hold off;
 set(gca,'FontSize',16)
 saveas(gcf,'work_paced.png')
+
+% Calculate mean of delta from unpaced to paced for mono and RSA
+disp('Comparing efficiency change from unpaced to paced between mono and RSA paced groups...')
+diffMono = yMono(:,1) - yMono(:,2);
+diffRSA = yRSA(:,1) - yRSA(:,2);
+[h,p,ci,stats] = ttest2(diffMono,diffRSA)
+
+% Plot
+ydata = [diffMono; diffRSA];
+xgroupdata = [categorical(repmat({'Mono'}, 1, length(diffMono))), ....
+    categorical(repmat({'RSA'}, 1, length(diffRSA)))];
+
+figure;
+b = boxchart(ydata, 'GroupByColor', xgroupdata,'MarkerStyle','none');
+hold on;
+b(1).BoxFaceColor = 'magenta';
+b(2).BoxFaceColor = 'cyan';
+b(1).BoxFaceAlpha = 0.1;
+b(2).BoxFaceAlpha = 0.1;
+
+% Plot raw data points directly above their corresponding box plots
+a = -0.1;
+b = 0.1;
+n = numel(diffRSA);
+jitter = a + (b-a).*rand(n,1);
+xMono = 0.75*ones(size(diffMono)) + jitter;
+xRSA = 1.25 * ones(size(diffRSA)) + jitter;
+scatter(xRSA, diffRSA, 'c', 'filled', 'MarkerFaceAlpha', 0.5,'MarkerEdgeColor','b');
+scatter(xMono, diffMono, 'm', 'filled', 'MarkerFaceAlpha', 0.5,'MarkerEdgeColor','r');
+
+ax = gca;
+set(ax,'xticklabel',[])
+ylabel({'Unpaced to paced'; 'work change (mL*mm Hg)'});
+legend({'Mono','RSA'}, 'Location', 'best');
+hold off;
+set(gca,'FontSize',16)
+saveas(gcf,'work_delta_box.png')
 
 
 

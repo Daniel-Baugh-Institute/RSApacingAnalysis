@@ -5,6 +5,7 @@ function hrv_plot(hrv)
 
 addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
 [num_slices, num_subjects] = size(hrv);
+num_slices = 1;
 
 hrv_td = hrv.hrv_td;
 hrv_fd = hrv.hrv_fd;

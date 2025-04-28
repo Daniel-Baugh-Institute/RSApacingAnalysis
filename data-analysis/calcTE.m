@@ -64,8 +64,13 @@ for i = 1:num_subjects
 end
 
 % stats to compare HF and control
-HF_idx = 1:5;
-ctrl_idx = 6:9;
+% HF_idx = 1:5;
+% ctrl_idx = 6:9;
+
+% All data included
+HF_idx = [1:4 10 13 15 17 19 21 23 25 27 29 31 34];%[1:4 10:21]; %indices in data
+ctrl_idx = 5:9;
+AIDs = [1:10 13 15 17 19 21 23 25 27 29 31 34];
 
 % compare HR, BP, CO, CoBF
 
@@ -74,12 +79,15 @@ meanP_HF = meanP(:,HF_idx);
 meanP_ctrl = meanP(:,ctrl_idx);
 disp('Mean and std HF:')
 mean(meanP_HF,'omitmissing')
-meanP_HF = rmmissing(meanP_HF);
+meanP_HF = rmmissing(meanP_HF)
 std(meanP_HF(:))
 disp('Mean and std control:')
 mean(meanP_ctrl,'omitmissing')
-meanP_ctrl = rmmissing(meanP_ctrl);
+meanP_ctrl = rmmissing(meanP_ctrl)
 std(meanP_ctrl(:))
+disp('here')
+meanP_HF(:)
+meanP_ctrl(:)
 [h,p,ci,stats] = ttest2(meanP_HF(:),meanP_ctrl(:))
 
 % Plot
@@ -87,7 +95,7 @@ ydata = [meanP_ctrl(:);meanP_HF(:)];
 xgroupdata = [categorical(repmat({'Control'}, 1, length(meanP_ctrl(:)))), ....
     categorical(repmat({'HF'}, 1, length(meanP_HF(:))))];
 figure;
-boxchart(ydata, 'GroupByColor', xgroupdata);
+boxchart(ydata, 'GroupByColor', xgroupdata,'MarkerStyle','none');
 hold on;
 
 % Plot raw data points directly above their corresponding box plots
@@ -109,7 +117,7 @@ ylabel('Mean Prominence');
 legend({'Control','HF'}, 'Location', 'best');
 hold off;
 set(gca,'FontSize',16)
-saveas(gcf,'Mean_prominence_1hr_CO_CoBF.png')
+saveas(gcf,'Mean_prominence_30m_RR_MAP_all.png')
 
 % Median prominence
 disp('Median prominence')
@@ -128,7 +136,7 @@ std(medianP_ctrl(:))
 % Plot
 ydata = [medianP_ctrl(:);medianP_HF(:)];
 figure;
-boxchart(ydata, 'GroupByColor', xgroupdata);
+boxchart(ydata, 'GroupByColor', xgroupdata,'MarkerStyle','none');
 hold on;
 
 % Plot raw data points directly above their corresponding box plots
@@ -141,7 +149,7 @@ ylabel('Median prominence');
 legend({'Control','HF'}, 'Location', 'best');
 hold off;
 set(gca,'FontSize',16)
-saveas(gcf,'Median_prominence_1hr_CO_CoBF.png')
+saveas(gcf,'Median_prominence_30m_RR_MAP_all.png')
 
 % Max prominence
 disp('Max prominence')
@@ -163,12 +171,16 @@ xgroupdata = [categorical(repmat({'Control'}, 1, length(maxP_ctrl(:)))), ....
     categorical(repmat({'HF'}, 1, length(maxP_HF(:))))];
 
 figure;
-boxchart(ydata, 'GroupByColor', xgroupdata);
+boxchart(ydata, 'GroupByColor', xgroupdata,'MarkerStyle','none');
 hold on;
 
 % Plot raw data points directly above their corresponding box plots
-xHF = 1.25*ones(size(maxP_HF(:)));
-xCtrl = 0.75 * ones(size(maxP_ctrl(:)));
+n = numel(maxP_HF);
+jitterHF = a + (b-a).*rand(n,1);
+n = numel(maxP_ctrl);
+jitterCtrl = a + (b-a).*rand(n,1);
+xHF = 1.25*ones(size(maxP_HF(:))) + jitterHF;
+xCtrl = 0.75 * ones(size(maxP_ctrl(:))) + jitterCtrl;
 scatter(xHF, maxP_HF(:), 'r', 'filled', 'MarkerFaceAlpha', 0.5);
 scatter(xCtrl, maxP_ctrl(:), 'b', 'filled', 'MarkerFaceAlpha', 0.5);
 
@@ -178,7 +190,7 @@ ylabel('Max Prominence');
 legend({'Control','HF'}, 'Location', 'best');
 hold off;
 set(gca,'FontSize',16)
-saveas(gcf,'Max_prominence_1hr_CO_CoBF.png')
+saveas(gcf,'Max_prominence_30m_RR_MAP_all.png')
 
 % Std of prominence
 disp('Standard deviation of prominence')
@@ -200,12 +212,16 @@ xgroupdata = [categorical(repmat({'Control'}, 1, length(stdP_ctrl(:)))), ....
     categorical(repmat({'HF'}, 1, length(stdP_HF(:))))];
 
 figure;
-boxchart(ydata, 'GroupByColor', xgroupdata);
+boxchart(ydata, 'GroupByColor', xgroupdata,'MarkerStyle','none');
 hold on;
 
 % Plot raw data points directly above their corresponding box plots
-xHF = 1.25*ones(size(stdP_HF(:)));
-xCtrl = 0.75 * ones(size(stdP_ctrl(:)));
+n = numel(stdP_HF);
+jitterHF = a + (b-a).*rand(n,1);
+n = numel(stdP_ctrl);
+jitterCtrl = a + (b-a).*rand(n,1);
+xHF = 1.25*ones(size(stdP_HF(:))) + jitterHF;
+xCtrl = 0.75 * ones(size(stdP_ctrl(:))) + jitterCtrl;
 scatter(xHF, stdP_HF(:), 'r', 'filled', 'MarkerFaceAlpha', 0.5);
 scatter(xCtrl, stdP_ctrl(:), 'b', 'filled', 'MarkerFaceAlpha', 0.5);
 
@@ -215,7 +231,7 @@ ylabel('Standard deviation of prominence');
 legend({'Control','HF'}, 'Location', 'best');
 hold off;
 set(gca,'FontSize',16)
-saveas(gcf,'Std_prominence_1hr_CO_CoBF.png')
+saveas(gcf,'Std_prominence_30m_RR_MAP_all.png')
 
 
 disp('Mean transition energy')
@@ -237,12 +253,16 @@ xgroupdata = [categorical(repmat({'Control'}, 1, length(meanTE_ctrl(:)))), ....
     categorical(repmat({'HF'}, 1, length(meanTE_HF(:))))];
 
 figure;
-boxchart(ydata, 'GroupByColor', xgroupdata);
+boxchart(ydata, 'GroupByColor', xgroupdata,'MarkerStyle','none');
 hold on;
 
 % Plot raw data points directly above their corresponding box plots
-xHF = 1.25*ones(size(meanTE_HF(:)));
-xCtrl = 0.75 * ones(size(meanTE_ctrl(:)));
+n = numel(meanTE_HF);
+jitterHF = a + (b-a).*rand(n,1);
+n = numel(meanTE_ctrl);
+jitterCtrl = a + (b-a).*rand(n,1);
+xHF = 1.25*ones(size(meanTE_HF(:))) + jitterHF;
+xCtrl = 0.75 * ones(size(meanTE_ctrl(:))) + jitterCtrl;
 scatter(xHF, meanTE_HF(:), 'r', 'filled', 'MarkerFaceAlpha', 0.5);
 scatter(xCtrl, meanTE_ctrl(:), 'b', 'filled', 'MarkerFaceAlpha', 0.5);
 
@@ -252,5 +272,5 @@ ylabel('Mean transition energy');
 legend({'Control','HF'}, 'Location', 'best');
 hold off;
 set(gca,'FontSize',16)
-saveas(gcf,'Mean_TE_1hr_CO_CoBF.png')
+saveas(gcf,'Mean_TE_30m_RR_MAP_all.png')
 end

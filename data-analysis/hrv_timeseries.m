@@ -9,15 +9,20 @@ addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/
 
 %% CHANGE THIS SECTION FOR DIFFERENT DATA INPUTS
 % Compare HRV metrics for HF and control animals
-HFidx = 1:5;
-ctrlIdx = 6:10;
+% HFidx = 1:5;
+% ctrlIdx = 6:10;
 timevec = 0:0.5:30;%0:12:12*(num_slices-1);
 
 
 % Compare HRV metrics for expanded dataset with extra HF samples
-HFidx = [1:4 10 13 15 17 19 21 23 25 27 29 31 34];
+% HFidx = [1:4 10 13 15 17 19 21 23 25 27 29 31 34];
+% ctrlIdx = 5:9;
+% AIDs = [1:10 13 15 17 19 21 23 25 27 29 31 34];
+
+% Coompare HRV metrics for just baseline
+HFidx = [1:4 10:21]; %indices in data
 ctrlIdx = 5:9;
-AIDs = [1:10 13 15 17 19 21 23 25 27 29 31 34]; 
+AIDs = [1:10 13 15 17 19 21 23 25 27 29 31 34];
 
 num_subjects = sum(numel(HFidx), numel(ctrlIdx));
 %%
@@ -65,7 +70,7 @@ for m = 1:length(metrics)
             end
         end
         % plot metric
-        if AIDs(j) < 6 || AIDs(j) > 10 % HF
+        if AIDs(j) < 5 || AIDs(j) > 9 % HF
             color = 'r';
             label = 'HF';
         else
@@ -75,6 +80,8 @@ for m = 1:length(metrics)
 
     
         % Show legend for one HF and one control animal
+        j
+        mean(timeseries_metric,'omitmissing')
         if (j == 1 && color == 'r') || (j == 6 && color == 'b')
             h = plot(timevec(2:end),timeseries_metric,'o-','Color',color,'DisplayName',label);
         else
