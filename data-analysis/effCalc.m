@@ -21,7 +21,7 @@ times_CO = data(i,jj).timeHRs_CO*3600; % convert to s
     % Extract BP and CO values for the beat
     try
         BP_vals = data(i,jj).BP(times_BP > s & times_BP < e); % mmHg
-        CO_vals = data(i,jj).CO(times_CO > s & times_CO < e)/60/1000; % Convert CO to mL/s
+        CO_vals = data(i,jj).CO(times_CO > s & times_CO < e)*1000/60; % Convert CO to mL/s
         time_CO = times_CO(times_CO > s & times_CO < e);
 
         % Count how many heart beats to calculate per beat average
@@ -89,9 +89,15 @@ times_CO = data(i,jj).timeHRs_CO*3600; % convert to s
         CoBF_vals = NaN;
         disp('Warning: unable to calculate CoBF')
     end
-    if ~isempty(CoBF_vals) && numel(CoBF_vals) > 1 && ~any(isnan(CoBF_vals))
-        efficiency_per_beat_sample = work_per_beat_sample / trapz(time_CO, CoBF_vals); % units of trapz(time_CO, CoBF_vals) = mL
-        CoBF_per_beat = trapz(time_CO, CoBF_vals) / num_beats;
+    if ~isempty(CoBF_vals) && numel(CoBF_vals) > 1 && ~any(isnan(CoBF_vals)) % for model ~isempty(CO_vals)
+        % efficiency_per_beat_sample = work_per_beat_sample / trapz(time_CO, CoBF_vals); % units of trapz(time_CO, CoBF_vals) = mL
+        % disp('Vol vals size')
+        % size(vol_vals)
+        % vol_vals(end)
+        % trapz(time_CO, CoBF_vals)
+        % efficiency_per_beat_sample = vol_vals(end) / trapz(time_CO, CoBF_vals); % Change so that efficiency = CO/CoBF
+        efficiency_per_beat_sample = vol_vals(end) / work_per_beat_sample; % CO/work
+        CoBF_per_beat = trapz(time_CO, CoBF_vals) / num_beats; % for model: NaN
     else
         efficiency_per_beat_sample = NaN;
         CoBF_per_beat = NaN;
@@ -102,7 +108,7 @@ times_CO = data(i,jj).timeHRs_CO*3600; % convert to s
 
 work = work_per_beat_sample;
 efficiency = efficiency_per_beat_sample;
-vol_max = max(vol_vals);
+vol_max = max(vol_vals); % This is per beat CO
 bp_max = max(BP_vals);
 
 

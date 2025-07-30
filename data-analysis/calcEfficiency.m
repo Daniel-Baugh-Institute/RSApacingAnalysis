@@ -6,7 +6,7 @@ function [work_per_beat, efficiency_per_beat, work_mean, efficiency_mean, work_s
 addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
 rng default
 [num_slices, num_subjects] = size(data)
-num_slices = num_slices;
+num_slices = 1;
 
 
 % SV = integral of CO * RR interval
@@ -18,9 +18,9 @@ BP = struct([]);
 CoBF = struct([]);
 SV = struct([]);
 
-nb = 10; % number of heart beats for calculation
-for jj = 1:num_subjects % issue with subject 6?
-    for i = 1:num_slices
+nb = 100; % number of heart beats for calculation
+for jj = 1:num_subjects 
+    for i = 3:3%1:num_slices
 
         % randomly sample RR interval
         if length(data(i,jj).RRint) == 1 || isempty(data(i,jj).RRint)
@@ -51,7 +51,7 @@ for jj = 1:num_subjects % issue with subject 6?
             % Extract BP and CO values for the beat
             try
                 BP_vals = data(i,jj).BP(times_BP > s(k) & times_BP < e(k)); % mmHg
-                CO_vals = data(i,jj).CO(times_CO > s(k) & times_CO < e(k))/60/1000; % Convert CO to mL/s
+                CO_vals = data(i,jj).CO(times_CO > s(k) & times_CO < e(k))/60*1000; % Convert CO to mL/s
                 time_CO = times_CO(times_CO > s(k) & times_CO < e(k));
             catch
                 sprintf('Lines 46-48, sheep %d, window %d, k %d failed',jj,i,k)
@@ -89,11 +89,19 @@ for jj = 1:num_subjects % issue with subject 6?
                 CoBF_vals = NaN;
                 disp('Warning: unable to calculate CoBF')
             end
-            if ~isempty(CoBF_vals) && numel(CoBF_vals) > 1 && ~any(isnan(CoBF_vals))
-                efficiency_per_beat_sample(k) = work_per_beat_sample(k) / trapz(time_CO, CoBF_vals); % units of trapz(time_CO, CoBF_vals) = mL
+            if numel(CoBF_vals) > 1 && ~any(isnan(CoBF_vals)) % ~isempty(CoBF_vals) && 
+                efficiency_per_beat_sample(k) = vol_vals(end)/work_per_beat_sample(k);
+                % work/CoBF definition of efficiency: work_per_beat_sample(k) / trapz(time_CO, CoBF_vals); % units of trapz(time_CO, CoBF_vals) = mL
             else
                 efficiency_per_beat_sample(k) = NaN;
-                disp('Warning: Unable to calculate Efficiency per Beat');
+                sprintf('Warning: Unable to calculate efficiency per beat for sheep %d, window %d', jj, i)
+                % if isempty(CoBF_vals)
+                %     disp('CoBF_vals missing')
+                if any(isempty(CoBF_vals))
+                    disp('any CoBF value missing')
+                else
+                    disp('Unknown reason')
+                end
             end
         end
 

@@ -28,25 +28,25 @@ num_subjects = sum(numel(HFidx), numel(ctrlIdx));
 %%
 
 
-hrv_td = hrv.hrv_td;
-hrv_fd = hrv.hrv_fd;
-hrv_nl = hrv.hrv_nl;
+% hrv_td = hrv.hrv_td;
+% hrv_fd = hrv.hrv_fd;
+% hrv_nl = hrv.hrv_nl;
 hrv_frag = hrv.hrv_frag;
 
 
 
 % Get metric names from table
-headers_td = hrv_td.Properties.VariableNames;
-headers_fd = hrv_fd.Properties.VariableNames;
-headers_nl = hrv_nl.Properties.VariableNames;
+% headers_td = hrv_td.Properties.VariableNames;
+% headers_fd = hrv_fd.Properties.VariableNames;
+% headers_nl = hrv_nl.Properties.VariableNames;
 headers_frag = hrv_frag.Properties.VariableNames;
 
 
 % Plot timeseries progression of hrv metrics for each animal
-disp_labels = {'Frequency domain metrics','Time domain metrics','Non-linear metrics','Fragmentation analysis metrics'};
-header_names = {'headers_fd','headers_td','headers_nl','headers_frag'};
-struct_names = {'hrv_fd','hrv_td','hrv_nl','hrv_frag'};
-for p = 1:4
+disp_labels = {'Fragmentation analysis metrics'};%{'Frequency domain metrics','Time domain metrics','Non-linear metrics','Fragmentation analysis metrics'};
+header_names = {'headers_frag'};%{'headers_fd','headers_td','headers_nl','headers_frag'};
+struct_names = {'hrv_frag'};%{'hrv_fd','hrv_td','hrv_nl','hrv_frag'};
+for p = 1:1
 disp(disp_labels{p})
 metrics = eval(header_names{p});
 labels = metrics;
@@ -97,7 +97,7 @@ for m = 1:length(metrics)
     legend({'HF','Control'}, 'Location', 'best');
     hold off;
     set(gca,'FontSize',16)
-    saveas(gcf,[metrics{m} '_30m_paced_timeseries.png'])
+    saveas(gcf,[metrics{m} '_30m_test_timeseries.png'])
 
 
 end

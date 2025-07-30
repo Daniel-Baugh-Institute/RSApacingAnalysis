@@ -16,13 +16,22 @@ addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/
 % myPool = parpool(myCluster, myCluster.NumWorkers);
 %% Load and preprocess data to save to smaller file
 
-filesToRead = {'2019 HF baseline.mat', '2031 HF baseline.mat', '2035 HF baseline.mat','2037 HF baseline.mat',...
-    '1828 day 11 baseline.mat', '2445 baseline.mat','2446 baseline.mat',...
-    '2454 baseline.mat','2478 baseline.mat','2453 baseline no CoBF.mat'};
+filesToRead = {'1909 baseline 3.mat', '1909 RSA day 14.mat', '1909 post RSA day 2.mat', ...
+    '2037 HF baseline.mat', '2037 RSA day 12.mat',... % 
+    '2048 day 5 baseline.mat', '2048 RSA day 14 no CoBF.mat', ...
+    '2102 baseline day 15.mat', '2102 RSA day 14.mat', ...
+    '2123 baseline day 4.mat', '2123 RSA day 11.mat', ...
+    '2125 baseline day 4.mat', '2125 RSA day 11.mat',...
+    '2232 baseline day5.mat','2232 mono day 11.mat', ...
+    '2236 baseline day 6.mat','2236 mono day 12.mat',...
+    '2229 baseline day 7.mat', '2229 mono day 7 CoBF poor signal.mat',...
+    '2228 baseline day 7.mat', '2228 mono day 12.mat',...
+    '1829 baseline day 10.mat', '1829 mono day 12.mat', '1829 post mono day 2.mat',...
+    '1833 baseline day 11.mat', '1833 mono day 13.mat'};
 
-% sampleLength = 15; % minutes
-% filename = 'sample15min.mat';
-% sampleSection(filesToRead, sampleLength, filename)
+% {'2019 HF baseline.mat', '2031 HF baseline.mat', '2035 HF baseline.mat','2037 HF baseline.mat',...
+%     '1828 day 11 baseline.mat', '2445 baseline.mat','2446 baseline.mat',...
+%     '2454 baseline.mat','2478 baseline.mat','2453 baseline no CoBF.mat'};
 
 num_subjects = length(filesToRead);
 
@@ -32,8 +41,11 @@ num_subjects = length(filesToRead);
 
 % Run data extraction in parallel
 
-    saveFileName = 'combinedData_RRfromRaw12.mat';
-    % data = combineSamples(filesToRead,saveFileName);
+    saveFilePrefix = '/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/data-processing/combinedData_all_30m_48slices_042125';
+    % combinedData_all_30m_48slices only has second data set with 26
+    % samples
+
+    % data = combineSamples(filesToRead,saveFilePrefix);
 
 
 % Repackage data into single file
@@ -48,9 +60,36 @@ num_subjects = length(filesToRead);
 %     combinedData(i).RRint = data(1).RRint;
 %     combinedData(i).MAP = data(1).MAP;
 % end
-% save('combinedData15.mat','data','-v7.3')
-load(saveFileName)
+saveFileName = [saveFilePrefix '.mat'];
+% save(saveFileName,'data','-v7.3')
+% load(saveFileName)
 
+% save sample of data for local testing
+% f=fieldnames(data)
+% 
+% for i = 1:length(f)
+%     try
+%         sample_data(1,1).(f{i})(1:2000)=data(2,6).(f{i})(1:2000); 
+%     catch
+%         disp('Field not a timeseries?')
+%         f{i}
+%         sample_data(1,1).(f{i})=data(2,6).(f{i})(1:end);
+%     end
+% end
+% 
+% save('sample_data_S6_W2.mat','sample_data')
+
+
+% disp('data size')
+% size(data)
+% data = data(1:2,1);
+% save('data_test.mat',"data")
+% [work_segment_accel, work_segment_alt, efficiency_segment_accel, efficiency_segment_alt] = calcEfficiencyFrag(data)
+
+% 
+% disp('1 hr')
+% load('combinedData_classificationTest_1hr.mat')
+% size(data)
 
 % combinedAnnotatedData has first 2 HF samples
 % load("combinedAnnotatedData_HF.mat","data","annotated_data")
@@ -61,23 +100,121 @@ load(saveFileName)
 % RR, BP, SBP, CO, CoBF were all stationary for all subjects with p = 0.001
 % tested using the augmented dickey-fuller test
 
+% HRV analysis
+% data = [];%data(:,[12 33]);
+% hrv(data)
+
+% Calculate cardiac efficiency
+% [work_per_beat, efficiency_per_beat, work_mean, efficiency_mean, work_std, efficiency_std] = calcEfficiency(data);
+% save('efficiency_30m_all_CO-work.mat','work_per_beat','efficiency_per_beat','work_mean','efficiency_mean','work_std','efficiency_std','-v7.3')
+load 'efficiency_30m_all_CO-work.mat'
+% size(work_mean)
+
+
+% plot comparison of paced and unpaced efficiency and work
+control_flag = 0;
+healthy_mean = [];
+healthy_std = [];
+plot_paced_efficiency(work_mean, efficiency_mean, work_std, efficiency_std,healthy_mean, healthy_std,control_flag)
+
+% Plot RR intervals show heart rate fragmentation segments
+% fields = fieldnames(data)
+
+% nni = data(1,11).RRint(100:150);
+% nn_times = data(1,11).RRtime(100:150);
+% save('frag_HF1.mat',"nn_times","nni")
+% [ hrv_frag, acceleration_segment_boundaries_3plus, alternation_segment_boundaries_4plus ] = mhrv.hrv.hrv_fragmentation( nni );
+% save('plot_RR_frag_HF1.mat','acceleration_segment_boundaries_3plus','alternation_segment_boundaries_4plus','nni','nn_times')
+% % load 'test_plot_RR_frag_HF.mat'
+% filename = 'plot_RR_frag_HF1.png';
+% plotFrag(nni, nn_times, acceleration_segment_boundaries_3plus, alternation_segment_boundaries_4plus,filename)
+
+% Test of plotting CO vs RR
+% plotRR_CO(nni, nn_times, data(1,35))
+
 % Plot points of HR and SBP pairs and find PDF. Plot potential energy surface to visualize attractors
-var1 = 'SBP';
-var2 = 'RR';
-verbose = 0; % 1 for histogram, 0 for no histogram
-[PDF, PES] = plotPES(data,var1,var2,verbose); % returns struct with F_grid for each individual
+% disp('HR and BP')
+% var1 = 'SBP';
+% var2 = 'RR';
+% verbose = 0; % 1 for histogram, 0 for no histogram
+% OVERRIDE NUM_SLICES
+% [PDF, PES] = plotPES2(data,var1,var2); % returns struct with F_grid for each individual
+% save('PDF_RR_MAP_30m_paced.mat','PDF','PES','-v7.3')
+% disp('Saved RR, MAP .mat')
+% load 'PDF_RR_MAP_30m_paced.mat'
+% size(PES)
+% 
+% PDF_paced = PDF;
+% PES_paced = PES;
+% 
+% load('PDF_RR_MAP_30m_48slices.mat') % 10 original samples
+% % Remove duplicate sample
+% PDF(:,4) = [];
+% size(PDF)
+% % combine data
+% PDF_combined = [PDF, PDF_paced];
+% size(PDF_combined)
+% 
+% % Remove duplicate sample
+% PES(:,4) = [];
+% size(PES)
+% % combine data
+% PES_combined = [PES, PES_paced];
+% size(PES_combined)
 
 % transition state analysis
 % calculate transition energy
-calcTE(PES)
+% calcTE(PES_combined)
 
 % Plot potential energy surface for CO and CoBF
+% disp('CO and CoBF')
 % var1 = 'CO';
 % var2 = 'CoBF';
-% PDF = plotPES(data,var1,var2,verbose);
+% verbose = 0;
+% % OVERRIDE NUM_SLICES
+% [PDF, PES] = plotPES2(data,var1,var2);
+% save('PDF_30min_CO_CoBF_paced.mat','PDF','PES','-v7.3')
+% % disp('Saved mat file')
+% load('PDF_30min_CO_CoBF_paced.mat')% 16 paced samples
+% PDF_paced = PDF;
+% PES_paced = PES;
+% load('PDF_30m_48slices_CO_CoBF.mat') % 10 original samples
+
+% Remove duplicate sample
+% PDF(:,4) = [];
+% size(PDF)
+% % combine data
+% PDF_combined = [PDF, PDF_paced];
+% size(PDF_combined)
+% 
+% % Remove duplicate sample
+% PES(:,4) = [];
+% size(PES)
+% % combine data
+% PES_combined = [PES, PES_paced];
+% size(PES_combined)
+% 
+% calcTE(PES_combined)
+
 
 % Calculate Bhattacharyya distance between potential energy surfaces
-D_B = bhattacharyya_distance_2d(PDF)
+% load '/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/PDF_30min_CO_CoBF_paced.mat'
+% PES_paced = PES;
+% PDF_paced = PDF;
+% load '/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/PDF_30m_48slices_CO_CoBF.mat'
+% PES_combined = [PES PES_paced];
+% PDF_combined = [PDF PDF_paced];
+% size(PES_combined)
+% D_B = bhattacharyya_distance_2d(PDF_combined)
+
+% Classifier
+% size(PES)
+% load 'PDF_RR_MAP_1hr_24slices.mat'
+% classify_pes(PES_combined)
+
+% PCA
+% filename = 'PCA_test.png';
+% [coeff, score, latent] = pca_timeseries(data,filename);
 
 
 %% HRV

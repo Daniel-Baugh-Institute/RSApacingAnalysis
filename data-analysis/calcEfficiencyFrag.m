@@ -16,7 +16,7 @@ MonoPaced = [24 26 28 30 32 35];
 num_slices = 1;
 
 % Find indices for acceleration and alternation RR intervals
-for jj = 3:num_subjects%1:num_subjects 
+for jj = 1:num_subjects 
     for i = 1:num_slices
         if ~isnan(data(i,jj).RRint)
             nni = data(i,jj).RRint;
@@ -26,17 +26,20 @@ for jj = 3:num_subjects%1:num_subjects
         [ ~, acceleration_segment_boundaries_3plus, alternation_segment_boundaries_2plus ] = mhrv.hrv.hrv_fragmentation( nni );
         
         acceleration_segment_boundaries_3plus(1:10,:)
-        alternation_segment_boundaries_2plus(1:10,:)
+        alternation_segment_boundaries_2plus(1,:)
         % Acceleration/deceleration windows
         work_segment_accel = [];
         efficiency_segment_accel = [];
         CoBF_per_beat_accel = [];
+        work_segment_accel = zeros(1,length(acceleration_segment_boundaries_3plus));
+        efficiency_segment_accel = zeros(1,length(acceleration_segment_boundaries_3plus));
+        CoBF_per_beat_accel = zeros(1,length(acceleration_segment_boundaries_3plus));
 
         for m = 1:length(acceleration_segment_boundaries_3plus)
             % Convert to time stamps
             start = data(i,jj).RRtime(acceleration_segment_boundaries_3plus(m,1));
             stop = data(i,jj).RRtime(acceleration_segment_boundaries_3plus(m,2));
-            disp('calcEfficiencyFrag')
+            
             num_beats_check = acceleration_segment_boundaries_3plus(m,2) - acceleration_segment_boundaries_3plus(m,1);
             % disp('Negative CoBF')
             % sum(data(i,jj).CoBF < 0)
@@ -67,19 +70,19 @@ for jj = 3:num_subjects%1:num_subjects
             end
             % vol_max_accel(m) = vol_max;
             
-            try
-                bp_max_accel(m) = bp_max;
-            catch
-                disp('bp_max empty?')
-                size(bp_max)
-                bp_max_accel(m) = NaN;
-            end
+            % try
+            %     bp_max_accel(m) = bp_max;
+            % catch
+            %     disp('bp_max empty?')
+            %     size(bp_max)
+            %     bp_max_accel(m) = NaN;
+            % end
         end
 
-        figure;
-        histogram(bp_max_accel > 0)
-        xlabel('BP')
-        saveas(gcf,['hist_bp_accel' num2str(jj) '.png'])
+        % figure;
+        % histogram(bp_max_accel > 0)
+        % xlabel('BP')
+        % saveas(gcf,['hist_bp_accel' num2str(jj) '.png'])
         
 
 
@@ -87,7 +90,11 @@ for jj = 3:num_subjects%1:num_subjects
         work_segment_alt = [];
         efficiency_segment_alt = [];
         CoBF_per_beat_alt = [];
-        for m = 1:length(alternation_segment_boundaries_2plus)
+        work_segment_alt = zeros(1,length(alternation_segment_boundaries_2plus));
+        efficiency_segment_alt = zeros(1,length(alternation_segment_boundaries_2plus));
+        CoBF_per_beat_alt = zeros(1,length(alternation_segment_boundaries_2plus));
+        [rows, ~] = size(alternation_segment_boundaries_2plus);
+        for m = 1:rows
             % Convert to time stamps
             start = data(i,jj).RRtime(alternation_segment_boundaries_2plus(m,1));
             stop = data(i,jj).RRtime(alternation_segment_boundaries_2plus(m,2));
@@ -115,24 +122,24 @@ for jj = 3:num_subjects%1:num_subjects
 
             % vol_max_alt(m) = vol_max;
 
-            try
-                bp_max_alt(m) = bp_max;
-            catch
-                disp('bp_max_alt empty')
-                bp_max_alt(m) = NaN;
-            end
+            % try
+            %     bp_max_alt(m) = bp_max;
+            % catch
+            %     disp('bp_max_alt empty')
+            %     bp_max_alt(m) = NaN;
+            % end
 
         end
-        disp('here')
-        length(CoBF_per_beat_alt)
-        length(efficiency_segment_alt)
-        length(work_segment_alt)
+        % disp('here')
+        % length(CoBF_per_beat_alt)
+        % length(efficiency_segment_alt)
+        % length(work_segment_alt)
 
 
-        figure;
-        histogram(bp_max_alt > 0)
-        xlabel('BP')
-        saveas(gcf,['hist_bp_alt' num2str(jj) '.png'])
+        % figure;
+        % histogram(bp_max_alt > 0)
+        % xlabel('BP')
+        % saveas(gcf,['hist_bp_alt' num2str(jj) '.png'])
 
     end
 
@@ -184,7 +191,7 @@ for jj = 3:num_subjects%1:num_subjects
     title(['Sheep ' num2str(jj) ' | ' tit])
     hold off;
     set(gca,'FontSize',16)
-    saveas(gcf,['work_accel-alt_box_' num2str(jj) '.png'])
+    saveas(gcf,['CO-work_work_accel-alt_box_' num2str(jj) '.png'])
     struct(i,jj).work = ydata;
 
     % Efficiency
@@ -216,12 +223,12 @@ for jj = 3:num_subjects%1:num_subjects
 
     ax = gca;
     set(ax,'xticklabel',[])
-    ylabel('Segment efficiency (mm Hg)');
+    ylabel('Segment efficiency (mm Hg^{-1})');
     legend({'Alternation','Acceleration/deceleration'}, 'Location', 'best');
     title(['Sheep ' num2str(jj)  ' | ' tit])
     hold off;
     set(gca,'FontSize',16)
-    saveas(gcf,['efficiency_accel-alt_box_' num2str(jj) '.png'])
+    saveas(gcf,['CO-work_efficiency_accel-alt_box_' num2str(jj) '.png'])
 
     struct(i,jj).efficiency = ydata;
 
@@ -260,29 +267,37 @@ for jj = 3:num_subjects%1:num_subjects
     title(['Sheep ' num2str(jj) ' | ' tit])
     hold off;
     set(gca,'FontSize',16)
-    saveas(gcf,['CoBF_accel-alt_box_' num2str(jj) '.png'])
+    saveas(gcf,['CO-work_CoBF_accel-alt_box_' num2str(jj) '.png'])
     struct(i,jj).CoBF_per_beat = ydata;
 
     % 3D plot of CoBF, Efficiency, work
-    length(CoBF_per_beat_alt)
-    length(efficiency_segment_alt)
-    length(work_segment_alt)
-    figure; 
-    plot3(CoBF_per_beat_alt,efficiency_segment_alt,work_segment_alt,'bo','MarkerFaceColor','b')
-    hold on
-    plot3(CoBF_per_beat_accel,efficiency_segment_accel,work_segment_accel,'ro','MarkerFaceColor','r')
-    legend({'Alternation','Acceleration/deceleration'}, 'Location', 'best');
-    xlabel('CoBF (mL)')
-    ylabel('Efficiency (mm Hg)')
-    zlabel('Work (mL*mm Hg)')
-    title(['Sheep ' num2str(jj) ' | ' tit])
-    set(gca,'FontSize',16)
-    saveas(gcf,['plot3D_' num2str(jj) '.png'])
+    % length(CoBF_per_beat_alt)
+    % length(efficiency_segment_alt)
+    % length(work_segment_alt)
+    % figure; 
+    % plot3(CoBF_per_beat_alt,efficiency_segment_alt,work_segment_alt,'bo','MarkerFaceColor','b')
+    % hold on
+    % plot3(CoBF_per_beat_accel,efficiency_segment_accel,work_segment_accel,'ro','MarkerFaceColor','r')
+    % legend({'Alternation','Acceleration/deceleration'}, 'Location', 'best');
+    % xlabel('CoBF (mL)')
+    % ylabel('Efficiency (mm Hg)')
+    % zlabel('Work (mL*mm Hg)')
+    % title(['Sheep ' num2str(jj) ' | ' tit])
+    % set(gca,'FontSize',16)
+    % saveas(gcf,['CO-work_plot3D_' num2str(jj) '.png'])
+
+    % Save mean and std accel/decel work and efficiency for each animal to
+    % use in plot_paced_efficiency.m
+    eff_mean_by_animal(jj) = mean(efficiency_segment_accel_clean);
+    eff_std_by_animal(jj) = std(efficiency_segment_accel_clean);
+    work_mean_by_animal(jj) = mean(work_segment_accel_clean);
+    work_std_by_animal(jj) = std(work_segment_accel_clean);
 end
+save('accel_plot_paced_efficiency.mat','eff_mean_by_animal','eff_std_by_animal','work_mean_by_animal','work_std_by_animal')
 
 
 
 
 
-save('efficiencyFrag.mat','struct')
+save('efficiencyFrag_CO-work.mat','struct')
 end

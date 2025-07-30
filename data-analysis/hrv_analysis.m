@@ -17,6 +17,15 @@ function hrv = hrv_analysis(data,varargin)
 
 addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
 [num_slices, num_subjects] = size(data);
+override = num_slices;
+% num_slices = 1;
+
+% select particular animals for analysis
+AIDs = 1:35;%[11 12 14 16 18 20 22 24 26 28 30 32 33 35];
+num_subjects = length(AIDs);
+% AIDs = [1:10 13 15 17 19 21 23 25 27 29 31 34]; 
+% num_subjects = length(AIDs);
+
 
 % Prepare environment for mhrv package
 folderPath = '/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/mhrv-master/bin/wfdb'; % Provide the full or relative path to the folder
@@ -43,8 +52,6 @@ if nargin > 1
     end
 end
 
-AIDs = [1:10 13 15 17 19 21 23 25 27 29 31 34]; 
-num_subjects = length(AIDs);
 for jj = 1:num_subjects
 
     for i = 1:num_slices
@@ -57,19 +64,19 @@ for jj = 1:num_subjects
         
         if ~isempty(RRint)
         % time domain metrics
-        filename = ['./plots_hrv/hrv_time_paced' num2str(AIDs(jj)) '.png'];
-        [ hrv_td, plot_data ] = mhrv.hrv.hrv_time( RRint, filename );
-        hrv(i,AIDs(jj)).hrv_td = hrv_td;
-
-        % frequency domain metrics
-        filename = {['./plots_hrv/hrv_fd_spectrum_paced' num2str(AIDs(jj)) '.png'],['./plots_hrv/hrv_fd_beta_paced' num2str(jj) '.png']};
-        [ hrv_fd, pxx, f_axis, plot_data ] = mhrv.hrv.hrv_freq( RRint, filename );
-        hrv(i,AIDs(jj)).hrv_fd = hrv_fd;
-
-        % nonlinear analysis
-        filename = ['hrv_nonlinear_paced' num2str(AIDs(jj)) '.png'];
-        [ hrv_nl, plot_data ] = mhrv.hrv.hrv_nonlinear( RRint, filename );
-        hrv(i,AIDs(jj)).hrv_nl = hrv_nl;
+        % filename = ['./plots_hrv/hrv_time_test' num2str(AIDs(jj)) '.png'];
+        % [ hrv_td, plot_data ] = mhrv.hrv.hrv_time( RRint, filename );
+        % hrv(i,AIDs(jj)).hrv_td = hrv_td;
+        % 
+        % % frequency domain metrics
+        % filename = {['./plots_hrv/hrv_fd_spectrum_test' num2str(AIDs(jj)) '.png'],['./plots_hrv/hrv_fd_beta_paced' num2str(jj) '.png']};
+        % [ hrv_fd, pxx, f_axis, plot_data ] = mhrv.hrv.hrv_freq( RRint, filename );
+        % hrv(i,AIDs(jj)).hrv_fd = hrv_fd;
+        % 
+        % % nonlinear analysis
+        % filename = ['hrv_nonlinear_test' num2str(AIDs(jj)) '.png'];
+        % [ hrv_nl, plot_data ] = mhrv.hrv.hrv_nonlinear( RRint, filename );
+        % hrv(i,AIDs(jj)).hrv_nl = hrv_nl;
 
         % fragmentation analysis
         [ hrv_frag, ~, ~ ] = mhrv.hrv.hrv_fragmentation( RRint );
@@ -83,6 +90,7 @@ for jj = 1:num_subjects
         end
 
     end
+    sprintf('Finished sheep %d',jj)
 end
 
 

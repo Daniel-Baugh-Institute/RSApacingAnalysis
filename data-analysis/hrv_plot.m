@@ -4,13 +4,14 @@ function hrv_plot(hrv)
 %   the animal number
 
 addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
-[num_slices, num_subjects] = size(hrv);
+[num_slices, num_subjects] = size(hrv)
 num_slices = 1;
 
 hrv_td = hrv.hrv_td;
 hrv_fd = hrv.hrv_fd;
 hrv_nl = hrv.hrv_nl;
 hrv_frag = hrv.hrv_frag;
+% save('hrv_frag.mat','hrv_frag')
 
 %% CHANGE HERE FOR COMPARING HF VS CONTROL
 % Compare HRV metrics for HF and control animals
@@ -18,8 +19,19 @@ hrv_frag = hrv.hrv_frag;
 % ctrlIdx = 6:10;
 
 % Compare HRV metrics for expanded dataset with extra HF samples
-HFidx = [1:4 10 13 15 17 19 21 23 25 27 29 31 34];
-ctrlIdx = 5:9;
+HFidx = [1:4 10 13 15 17 19 21 23 25 27 29 31 34]; 
+ctrlIdx = 5:9; 
+
+% Compare mono vs RSA paced
+% HFidx = [24 26 28 30 32 35]; % mono paced
+% ctrlIdx = [11 14 16 18 20 22];% RSA paced
+% 
+% % Compare HF baseline to RSA paced
+% ctrlidx = [11 14 16 18 20 22]-1; % HF baseline
+% HFidx = [11 14 16 18 20 22];% RSA paced
+% 
+% ctrlidx = [24 26 28 30 32 35]-1; % HF baseline
+% HFidx = [24 26 28 30 32 35];% RSA paced
 %%
 
 % Get metric names from table
@@ -31,7 +43,8 @@ headers_frag = hrv_frag.Properties.VariableNames;
 
 disp('h = 0 means no evidence that there are differences between groups')
 
-
+ylabel_metrics = {'\beta', 'HF norm', 'HF peak', 'HF power', 'LF norm',...
+    'LF peak', 'LF power', 'LF/HF', 'Total power', 'VLF norm', 'VLF power'};
 disp('Frequency domain metrics')
 metrics = [headers_fd]
 labels = metrics;
@@ -71,10 +84,12 @@ for m = 1:length(metrics)
     h2.BinWidth = binWidth;
     xlabel(labels{m})
     ylabel('Counts')
-    legend('Heart failure', 'Control')
+    legend('Mono', 'RSA')
     saveas(gcf,[metrics{m} '_hist.png'])
 
     % Plot
+    disp('frequency domain metrics')
+    ctrlVal(:)
     ydata = [ctrlVal(:); HFval(:)];
     xgroupdata = [categorical(repmat({'Control'}, 1, length(ctrlVal(:)))), ....
     categorical(repmat({'HF'}, 1, length(HFval(:))))];
@@ -97,11 +112,11 @@ for m = 1:length(metrics)
 
     ax = gca;
     set(ax,'xticklabel',[])
-    ylabel(metrics{m});
-    legend({'Control','HF'}, 'Location', 'best');
+    ylabel(ylabel_metrics{m});
+    % legend({'RSA','Mono'}, 'Location', 'best');
     hold off;
-    set(gca,'FontSize',16)
-    saveas(gcf,[metrics{m} '_box.png'])
+    set(gca,'FontSize',28)
+    saveas(gcf,['./plots-thesis/' metrics{m} '_box.png'])
 
 
 end
@@ -142,7 +157,7 @@ for m = 1:length(metrics)
     h2.BinWidth = binWidth;
     xlabel(labels{m})
     ylabel('Counts')
-    legend('Heart failure', 'Control')
+    legend('Mono', 'RSA')
     saveas(gcf,[metrics{m} 'paced_hist.png'])
 
     % Plot
@@ -169,10 +184,12 @@ for m = 1:length(metrics)
     ax = gca;
     set(ax,'xticklabel',[])
     ylabel(metrics{m});
-    legend({'Control','HF'}, 'Location', 'best');
+    if m == 1
+        legend({'RSA','Mono'}, 'Location', 'best');
+    end
     hold off;
-    set(gca,'FontSize',16)
-    saveas(gcf,[metrics{m} 'paced_box.png'])
+    set(gca,'FontSize',28)
+    saveas(gcf,['./plots-thesis/' metrics{m} '_box.png'])
 
     % Combined boxplot per slice
     figure;
@@ -196,9 +213,9 @@ for m = 1:length(metrics)
     xlabel('Time (h)')
     ylabel(labels{m});
     xlim([0 30])
-    legend({'Control Box','HF Box','Control Data','HF Data'}, 'Location', 'best');
+    legend({'RSA Box','Mono Box','RSA Data','Mono Data'}, 'Location', 'best');
     set(gcf,'Position',[0 0 2400 500])
-    set(gca, 'FontSize', 16)
+    set(gca, 'FontSize', 28)
     % title(['Per-Time-Slice Boxplot for ' labels{m}])
     saveas(gcf, sprintf('%s_box_per_slice_paced.png', metrics{m}))
 
@@ -210,6 +227,7 @@ disp('Nonlinear analysis metrics')
 metrics = [headers_nl]
 labels = metrics;
 labels = strrep(labels, '_', ' ');
+ylabel_metrics = {'SD1', 'SD2', '\alpha_1', '\alpha_2', 'Sample entropy'};
 for m = 1:length(metrics)
     for n = HFidx(1):HFidx(end)
         for p = 1:num_slices
@@ -242,7 +260,7 @@ for m = 1:length(metrics)
     h2.BinWidth = binWidth;
     xlabel(labels{m})
     ylabel('Counts')
-    legend('Heart failure', 'Control')
+    legend('Mono', 'RSA')
     saveas(gcf,[metrics{m} '_hist.png'])
 
     % Plot
@@ -268,11 +286,11 @@ for m = 1:length(metrics)
 
     ax = gca;
     set(ax,'xticklabel',[])
-    ylabel(metrics{m});
-    legend({'Control','HF'}, 'Location', 'best');
+    ylabel(ylabel_metrics{m});
+    %legend({'RSA','Mono'}, 'Location', 'best');
     hold off;
-    set(gca,'FontSize',16)
-    saveas(gcf,[metrics{m} '_box.png'])
+    set(gca,'FontSize',28)
+    saveas(gcf,['./plots-thesis/' metrics{m} '_box.png'])
 
     if m == 3 % alpha 1
         alpha1HF = HFval;
@@ -287,7 +305,7 @@ end
 % Alpha 1 and alpha 2 phase plot
 figure;
 h1 = scatter(alpha1Ctrl(1), alpha2Ctrl(1), 'bo', 'filled', ...
-    'MarkerFaceAlpha', 0.5, 'DisplayName', 'Control');
+    'MarkerFaceAlpha', 0.5, 'DisplayName', 'RSA');
 hold on;
 
 % Plot remaining Control points without legend entry
@@ -296,7 +314,7 @@ scatter(alpha1Ctrl(2:end), alpha2Ctrl(2:end), 'bo', 'filled', ...
 
 % Plot first HF point (for legend)
 h2 = scatter(alpha1HF(1), alpha2HF(1), 'r^', 'filled', ...
-    'MarkerFaceAlpha', 0.5, 'DisplayName', 'HF');
+    'MarkerFaceAlpha', 0.5, 'DisplayName', 'Mono');
 
 % Plot remaining HF points without legend entry
 scatter(alpha1HF(2:end), alpha2HF(2:end), 'r^', 'filled', ...
@@ -305,7 +323,7 @@ legend([h1 h2], 'Location', 'best');
 xlabel('Alpha 1')
 ylabel('Alpha 2')
 hold off;
-set(gca,'FontSize',16)
+set(gca,'FontSize',28)
 saveas(gcf,'alpha_phase_plot.png')
 
 
@@ -318,12 +336,13 @@ metrics = [headers_frag];
 labels = metrics;
 labels = strrep(labels, '_', ' ');
 for m = 1:length(metrics)
-    for n = HFidx(1):HFidx(end)
+    for n = 1:length(HFidx)
         for p = 1:num_slices
             try
                 HFval(p,n) = table2array(hrv(p,HFidx(n)).hrv_frag(1,m));
             catch
                 HFval(p,n) = NaN;
+                disp('Warning: HFval NaN')
             end
         end
     end
@@ -334,6 +353,7 @@ for m = 1:length(metrics)
                 ctrlVal(p,n) = table2array(hrv(p,ctrlIdx(n)).hrv_frag(1,m));
             catch
                 ctrlVal(p,n) = NaN;
+                disp('Warning: ctrlVal NaN')
             end
         end
     end
@@ -349,7 +369,7 @@ for m = 1:length(metrics)
     h2.BinWidth = binWidth;
     xlabel(labels{m})
     ylabel('Counts')
-    legend('Heart failure', 'Control')
+    legend('HF', 'Control')
     saveas(gcf,[metrics{m} '_hist.png'])
 
     % Plot
@@ -376,10 +396,10 @@ for m = 1:length(metrics)
     ax = gca;
     set(ax,'xticklabel',[])
     ylabel(metrics{m});
-    legend({'Control','HF'}, 'Location', 'best');
+    %legend({'Control','HF'}, 'Location', 'best');
     hold off;
-    set(gca,'FontSize',16)
-    saveas(gcf,[metrics{m} '_box.png'])
+    set(gca,'FontSize',28)
+    saveas(gcf,['./plots-thesis/' metrics{m} '_box.png'])
 
 
 end
