@@ -3,10 +3,20 @@ function [work_per_beat, efficiency_per_beat, work_mean, efficiency_mean, work_s
 % arterial pressure
 % Input: data, MxN struct where the row is the time sample and the column is
 %   the animal number
-addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
+% Outputs:
+%   work_per_beat: pressure-volume work per beat
+%   efficiency_per_beat: cardiac output/work, but there are other
+%   definitions of work provided in the commented code (cardiac
+%   output/coronary flow)
+%   work_mean: average of work over nb beats and num_slices windows
+%   efficiency_mean: average of mean over nb beats and num_slices windows
+%   work_std: standard deviation corresponding to work_mean
+%   efficiency_std: standard deviation corresponding to efficiency_mean
+my_dir = pwd;
+addpath(genpath(my_dir))
 rng default
 [num_slices, num_subjects] = size(data)
-num_slices = 1;
+num_slices = 10;
 
 
 % SV = integral of CO * RR interval
@@ -20,7 +30,7 @@ SV = struct([]);
 
 nb = 100; % number of heart beats for calculation
 for jj = 1:num_subjects 
-    for i = 3:3%1:num_slices
+    for i = 1:num_slices
 
         % randomly sample RR interval
         if length(data(i,jj).RRint) == 1 || isempty(data(i,jj).RRint)
@@ -70,10 +80,7 @@ for jj = 1:num_subjects
 
             % Compute Work per Beat using Pressure-Volume Loop
             sizediff = numel(BP_vals) - numel(CO_vals);
-            % size(times_BP)
-            % size(CO_vals)
-            % size(time_CO)
-            % size(vol_vals)
+
             if ~isempty(BP_vals) && numel(BP_vals) > 1 && ~any(isnan(vol_vals)) && ~any(isnan(BP_vals))
                 work_per_beat_sample(k) = trapz(vol_vals, BP_vals(1:end-sizediff)); % mL * mmHg
             else
@@ -82,7 +89,6 @@ for jj = 1:num_subjects
             end
 
             % Calculate Efficiency (Work/CoBF)
-            % NOTE: Is this the best measure of efficiency?
             try
                 CoBF_vals = data(i,jj).CoBF(times_CO > s(k) & times_CO < e(k))/60; % Convert to mL/s
             catch
@@ -95,8 +101,7 @@ for jj = 1:num_subjects
             else
                 efficiency_per_beat_sample(k) = NaN;
                 sprintf('Warning: Unable to calculate efficiency per beat for sheep %d, window %d', jj, i)
-                % if isempty(CoBF_vals)
-                %     disp('CoBF_vals missing')
+
                 if any(isempty(CoBF_vals))
                     disp('any CoBF value missing')
                 else
@@ -113,7 +118,6 @@ for jj = 1:num_subjects
     
     
     % Average and std work and efficiency for each animal
-    % TODO: this only samples the last i, k
     work_mean(jj) = mean(work_per_beat(:,jj),'all','omitmissing');
     efficiency_mean(jj) = mean(efficiency_per_beat(:,jj),'all','omitmissing');
 
@@ -167,7 +171,7 @@ h2.BinWidth = 0.001;
 xlabel('Work per beat (mL*mm Hg)')
 ylabel('Counts')
 legend('Heart failure', 'Control')
-saveas(gcf,'work_per_beat.png')
+saveas(gcf,'./plots/work_per_beat.png')
 
 % Plot
 ydata = [plotCtrl(:);plotHF(:)];
@@ -190,7 +194,7 @@ ylabel('Work per beat (mL*mm Hg)');
 legend({'Control','HF'}, 'Location', 'best');
 hold off;
 set(gca,'FontSize',16)
-saveas(gcf,'work_box.png')
+saveas(gcf,'./plots/work_box.png')
 
 
 % efficiency
@@ -213,7 +217,7 @@ h2.BinWidth = 0.002;
 xlabel('Efficiency (mm Hg)') % mL*mmHg/mL
 ylabel('Counts')
 legend('Heart failure', 'Control')
-saveas(gcf,'efficiency_per_beat.png')
+saveas(gcf,'./plots/efficiency_per_beat.png')
 
 % Plot
 ydata = [plotCtrl(:);plotHF(:)];
@@ -236,6 +240,6 @@ ylabel('Efficiency (mm Hg)');
 legend({'Control','HF'}, 'Location', 'best');
 hold off;
 set(gca,'FontSize',16)
-saveas(gcf,'efficiency_box.png')
+saveas(gcf,'./plots/efficiency_box.png')
 
 end

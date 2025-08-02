@@ -1,11 +1,22 @@
 function [work_segment_accel, work_segment_alt, efficiency_segment_accel, efficiency_segment_alt] = calcEfficiencyFrag(data)
-% , work_mean, efficiency_mean, work_std, efficiency_std
+
 % Function to calculate beat to beat cardiac work from cardiac output and
-% arterial pressure
+% arterial pressure based on fragmentation hrv analysis
 % Input: data, MxN struct where the row is the time sample and the column is
 %   the animal number
-addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
+% Outputs:
+% work_segment_accel: work for each acceleration segment
+% work_segment_alt: work for reach alternation segment
+% efficiency_segment_accel: efficiency for each acceleration segment
+% efficiency_segment_alt: efficiency for each alternation segment
+
+% Set path
+restoredefaultpath;
+my_dir = pwd
+addpath(genpath(my_dir))
 rng default
+
+% Indices for different experimental groups
 HFidx = [1:4 10 13 15 17 19 21 23 25 27 29 31 34];
 ctrlIdx = 5:9;
 RSApaced = [11 14 16 18 20 22];
@@ -26,7 +37,7 @@ for jj = 1:num_subjects
         [ ~, acceleration_segment_boundaries_3plus, alternation_segment_boundaries_2plus ] = mhrv.hrv.hrv_fragmentation( nni );
         
         acceleration_segment_boundaries_3plus(1:10,:)
-        alternation_segment_boundaries_2plus(1,:)
+        alternation_segment_boundaries_2plus(1:10,:)
         % Acceleration/deceleration windows
         work_segment_accel = [];
         efficiency_segment_accel = [];
@@ -68,21 +79,9 @@ for jj = 1:num_subjects
             else
                 CoBF_per_beat_accel(m) = NaN;
             end
-            % vol_max_accel(m) = vol_max;
-            
-            % try
-            %     bp_max_accel(m) = bp_max;
-            % catch
-            %     disp('bp_max empty?')
-            %     size(bp_max)
-            %     bp_max_accel(m) = NaN;
-            % end
+
         end
 
-        % figure;
-        % histogram(bp_max_accel > 0)
-        % xlabel('BP')
-        % saveas(gcf,['hist_bp_accel' num2str(jj) '.png'])
         
 
 
@@ -120,26 +119,7 @@ for jj = 1:num_subjects
                 CoBF_per_beat_alt(m) = NaN;
             end
 
-            % vol_max_alt(m) = vol_max;
-
-            % try
-            %     bp_max_alt(m) = bp_max;
-            % catch
-            %     disp('bp_max_alt empty')
-            %     bp_max_alt(m) = NaN;
-            % end
-
         end
-        % disp('here')
-        % length(CoBF_per_beat_alt)
-        % length(efficiency_segment_alt)
-        % length(work_segment_alt)
-
-
-        % figure;
-        % histogram(bp_max_alt > 0)
-        % xlabel('BP')
-        % saveas(gcf,['hist_bp_alt' num2str(jj) '.png'])
 
     end
 
@@ -191,7 +171,7 @@ for jj = 1:num_subjects
     title(['Sheep ' num2str(jj) ' | ' tit])
     hold off;
     set(gca,'FontSize',16)
-    saveas(gcf,['CO-work_work_accel-alt_box_' num2str(jj) '.png'])
+    saveas(gcf,['./plots/CO-work_work_accel-alt_box_' num2str(jj) '.png'])
     struct(i,jj).work = ydata;
 
     % Efficiency
@@ -228,7 +208,7 @@ for jj = 1:num_subjects
     title(['Sheep ' num2str(jj)  ' | ' tit])
     hold off;
     set(gca,'FontSize',16)
-    saveas(gcf,['CO-work_efficiency_accel-alt_box_' num2str(jj) '.png'])
+    saveas(gcf,['./plots/CO-work_efficiency_accel-alt_box_' num2str(jj) '.png'])
 
     struct(i,jj).efficiency = ydata;
 
@@ -267,13 +247,10 @@ for jj = 1:num_subjects
     title(['Sheep ' num2str(jj) ' | ' tit])
     hold off;
     set(gca,'FontSize',16)
-    saveas(gcf,['CO-work_CoBF_accel-alt_box_' num2str(jj) '.png'])
+    saveas(gcf,['./plots/CO-work_CoBF_accel-alt_box_' num2str(jj) '.png'])
     struct(i,jj).CoBF_per_beat = ydata;
 
     % 3D plot of CoBF, Efficiency, work
-    % length(CoBF_per_beat_alt)
-    % length(efficiency_segment_alt)
-    % length(work_segment_alt)
     % figure; 
     % plot3(CoBF_per_beat_alt,efficiency_segment_alt,work_segment_alt,'bo','MarkerFaceColor','b')
     % hold on
@@ -284,7 +261,7 @@ for jj = 1:num_subjects
     % zlabel('Work (mL*mm Hg)')
     % title(['Sheep ' num2str(jj) ' | ' tit])
     % set(gca,'FontSize',16)
-    % saveas(gcf,['CO-work_plot3D_' num2str(jj) '.png'])
+    % saveas(gcf,['./plots/CO-work_plot3D_' num2str(jj) '.png'])
 
     % Save mean and std accel/decel work and efficiency for each animal to
     % use in plot_paced_efficiency.m
@@ -293,11 +270,11 @@ for jj = 1:num_subjects
     work_mean_by_animal(jj) = mean(work_segment_accel_clean);
     work_std_by_animal(jj) = std(work_segment_accel_clean);
 end
-save('accel_plot_paced_efficiency.mat','eff_mean_by_animal','eff_std_by_animal','work_mean_by_animal','work_std_by_animal')
+save('./plots/accel_plot_paced_efficiency.mat','eff_mean_by_animal','eff_std_by_animal','work_mean_by_animal','work_std_by_animal')
 
 
 
 
 
-save('efficiencyFrag_CO-work.mat','struct')
+save('./plots/efficiencyFrag_CO-work.mat','struct')
 end

@@ -4,7 +4,7 @@ function plot_paced_efficiency(work_mean, efficiency_mean, work_std, efficiency_
 % Inputs: work_per_beat, efficiency_per_beat, work_mean,
 % efficiency_mean, work_std, efficiency_std,filename, control_flag (1 if
 % plotting control/healthy animals, 0 if not)
-addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
+
 rng default
 
 %% CHANGE HERE FOR DIFFERENT GROUP COMPARISONS %%
@@ -84,7 +84,7 @@ legend({'RSA','Mono'}, 'Location', 'best');
 hold off;
 set(gca,'FontSize',16)
 % saveas(gcf,'efficiency_paced.png')
-saveas(gcf,[filePrefix '_paced.png'])
+saveas(gcf,['./plots/' filePrefix '_paced.png'])
 
 % Calculate mean of delta from unpaced to paced for mono and RSA
 disp('Comparing efficiency change from unpaced to paced between mono and RSA paced groups...')
@@ -123,8 +123,7 @@ ylabel({['Unpaced to paced ' varName]; 'change (mm Hg^{-1})'});
 legend({'Mono','RSA'}, 'Location', 'best');
 hold off;
 set(gca,'FontSize',16)
-% saveas(gcf,'efficiency_delta_box.png')
-saveas(gcf,[filePrefix '_delta_box.png'])
+saveas(gcf,['./plots/' filePrefix '_delta_box.png'])
 
 %% Work / CO / RR
 varName = 'Work (mL*mm Hg)';
@@ -168,8 +167,7 @@ ylabel(varName)
 legend({'RSA','Mono'}, 'Location', 'best');
 hold off;
 set(gca,'FontSize',16)
-% saveas(gcf,'work_paced.png')
-saveas(gcf,[filePrefix '_paced.png'])
+saveas(gcf,['./plots/' filePrefix '_paced.png'])
 
 % Calculate mean of delta from unpaced to paced for mono and RSA
 disp('Comparing efficiency change from unpaced to paced between mono and RSA paced groups...')
@@ -207,7 +205,7 @@ ylabel({'Unpaced to paced'; 'work change (mL * mm Hg)'});
 legend({'Mono','RSA'}, 'Location', 'best');
 hold off;
 set(gca,'FontSize',16)
-saveas(gcf,[filePrefix '_delta_box.png'])
+saveas(gcf,['./plots/' filePrefix '_delta_box.png'])
 
 
 

@@ -1,6 +1,12 @@
 function [work, efficiency, CoBF_per_beat, vol_max, bp_max] = effCalc(data,subject,slice,start,stop,num_beats_check)
-% start: segment start beat index
-% stop: segment end beat index
+% Calculate work and efficiency for a small time window (tens of beats)
+%  Input: data, MxN struct where the row is the time sample and the column is
+%   the animal number
+% subject: which subject in data (column) to analyze slice: which time
+% window in data (row) to analyze start: segment start beat index stop:
+% segment end beat index num_beats_check: check that number of beats in
+% RR_interval for that time window is the same as the number of beats
+% calculated from the function
 i = slice;
 jj = subject;
 
@@ -95,8 +101,8 @@ times_CO = data(i,jj).timeHRs_CO*3600; % convert to s
         % size(vol_vals)
         % vol_vals(end)
         % trapz(time_CO, CoBF_vals)
-        % efficiency_per_beat_sample = vol_vals(end) / trapz(time_CO, CoBF_vals); % Change so that efficiency = CO/CoBF
-        efficiency_per_beat_sample = vol_vals(end) / work_per_beat_sample; % CO/work
+        % efficiency_per_beat_sample = vol_vals(end) / trapz(time_CO, CoBF_vals); % 7/31/25: no grouping of data. Change so that efficiency = CO/CoBF
+        efficiency_per_beat_sample = vol_vals(end) / work_per_beat_sample; % 7/31/25: higher efficiency for alt: CO/work
         CoBF_per_beat = trapz(time_CO, CoBF_vals) / num_beats; % for model: NaN
     else
         efficiency_per_beat_sample = NaN;

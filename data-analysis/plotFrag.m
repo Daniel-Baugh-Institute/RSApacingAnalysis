@@ -15,7 +15,8 @@ function plotFrag(nni, nn_times, acceleration_segment_boundaries_3plus, alternat
 
 
 
-addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
+mydir = pwd
+addpath(genpath(mydir))
 
 % Separate acceleration versus deceleration segments for plotting
 [num_samples,~] = size(acceleration_segment_boundaries_3plus);
@@ -91,51 +92,8 @@ legend('Location','northoutside','Orientation','horizontal')
 set(gcf,'Position',[0 0 800 500])
 set(gca,'FontSize',24)
 xlim([nn_times(1)-0.001 nn_times(end)+0.001])
+filename = ['./plots/' filename];
 saveas(gcf,filename)
-%% PLOTS ACCELERATION AND DECELERATION SEGMENTS IN THE SAME COLOR
-% figure;
-% hold on;
-% 
-% 
-% 
-% 
-% offset = 0.0002; % offset for visualization
-% 
-% for i = 1:num_samples
-%     times = nn_times(acceleration_segment_boundaries_3plus(i,1):acceleration_segment_boundaries_3plus(i,2));
-%     intervals = nni(acceleration_segment_boundaries_3plus(i,1):acceleration_segment_boundaries_3plus(i,2));
-%     if i == 1
-%        plot(times,intervals+offset,'c-','LineWidth',2,'DisplayName', 'Acceleration/deceleration')
-%     else
-%         plot(times,intervals+offset,'c-','LineWidth',2,'HandleVisibility','off')
-%     end
-%     hold on
-% end
-% 
-% 
-% 
-% 
-% 
-% [num_samples,~] = size(alternation_segment_boundaries_4plus);
-% for i = 1:num_samples
-%     times = nn_times(alternation_segment_boundaries_4plus(i,1):alternation_segment_boundaries_4plus(i,2));
-%     intervals = nni(alternation_segment_boundaries_4plus(i,1):alternation_segment_boundaries_4plus(i,2));
-%     if i == 1
-%         plot(times,intervals-offset,'m-','LineWidth',2,'DisplayName','Alternation')
-%     else
-%         plot(times,intervals-offset,'m-','LineWidth',2,'HandleVisibility','off')
-%     end
-%     hold on
-% end
-% 
-% plot(nn_times,nni,'ko-','HandleVisibility','off','LineWidth',1)
-% xlabel('Time (s)')
-% ylabel('RR interval (s)')
-% 
-% legend('Location','northoutside')
-% set(gcf,'Position',[0 0 800 500])
-% set(gca,'FontSize',16)
-% 
-% saveas(gcf,filename)
+
 
 end

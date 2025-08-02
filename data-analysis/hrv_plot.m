@@ -3,7 +3,11 @@ function hrv_plot(hrv)
 % Input: hrv, MxN struct where the row is the time sample and the column is
 %   the animal number
 
-addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
+restoredefaultpath
+pwd
+cd ../RSApacingAnalysisAndModel
+my_dir = pwd
+addpath(genpath(my_dir))
 [num_slices, num_subjects] = size(hrv)
 num_slices = 1;
 
@@ -15,10 +19,6 @@ hrv_frag = hrv.hrv_frag;
 
 %% CHANGE HERE FOR COMPARING HF VS CONTROL
 % Compare HRV metrics for HF and control animals
-% HFidx = 1:5;
-% ctrlIdx = 6:10;
-
-% Compare HRV metrics for expanded dataset with extra HF samples
 HFidx = [1:4 10 13 15 17 19 21 23 25 27 29 31 34]; 
 ctrlIdx = 5:9; 
 
@@ -32,7 +32,8 @@ ctrlIdx = 5:9;
 % 
 % ctrlidx = [24 26 28 30 32 35]-1; % HF baseline
 % HFidx = [24 26 28 30 32 35];% RSA paced
-%%
+
+%% Plotting
 
 % Get metric names from table
 headers_td = hrv_td.Properties.VariableNames;
@@ -85,7 +86,7 @@ for m = 1:length(metrics)
     xlabel(labels{m})
     ylabel('Counts')
     legend('Mono', 'RSA')
-    saveas(gcf,[metrics{m} '_hist.png'])
+    saveas(gcf,['./plots/' metrics{m} '_hist.png'])
 
     % Plot
     disp('frequency domain metrics')
@@ -116,7 +117,7 @@ for m = 1:length(metrics)
     % legend({'RSA','Mono'}, 'Location', 'best');
     hold off;
     set(gca,'FontSize',28)
-    saveas(gcf,['./plots-thesis/' metrics{m} '_box.png'])
+    saveas(gcf,['./plots/' metrics{m} '_box.png'])
 
 
 end
@@ -158,7 +159,7 @@ for m = 1:length(metrics)
     xlabel(labels{m})
     ylabel('Counts')
     legend('Mono', 'RSA')
-    saveas(gcf,[metrics{m} 'paced_hist.png'])
+    saveas(gcf,['./plots/' metrics{m} 'paced_hist.png'])
 
     % Plot
     ydata = [ctrlVal(:); HFval(:)];
@@ -189,7 +190,7 @@ for m = 1:length(metrics)
     end
     hold off;
     set(gca,'FontSize',28)
-    saveas(gcf,['./plots-thesis/' metrics{m} '_box.png'])
+    saveas(gcf,['./plots/' metrics{m} '_box.png'])
 
     % Combined boxplot per slice
     figure;
@@ -217,7 +218,7 @@ for m = 1:length(metrics)
     set(gcf,'Position',[0 0 2400 500])
     set(gca, 'FontSize', 28)
     % title(['Per-Time-Slice Boxplot for ' labels{m}])
-    saveas(gcf, sprintf('%s_box_per_slice_paced.png', metrics{m}))
+    saveas(gcf, sprintf('./plots/%s_box_per_slice_paced.png', metrics{m}))
 
 
 end
@@ -261,7 +262,7 @@ for m = 1:length(metrics)
     xlabel(labels{m})
     ylabel('Counts')
     legend('Mono', 'RSA')
-    saveas(gcf,[metrics{m} '_hist.png'])
+    saveas(gcf,['./plots/' metrics{m} '_hist.png'])
 
     % Plot
     ydata = [ctrlVal(:); HFval(:)];
@@ -290,7 +291,7 @@ for m = 1:length(metrics)
     %legend({'RSA','Mono'}, 'Location', 'best');
     hold off;
     set(gca,'FontSize',28)
-    saveas(gcf,['./plots-thesis/' metrics{m} '_box.png'])
+    saveas(gcf,['./plots/' metrics{m} '_box.png'])
 
     if m == 3 % alpha 1
         alpha1HF = HFval;
@@ -324,7 +325,7 @@ xlabel('Alpha 1')
 ylabel('Alpha 2')
 hold off;
 set(gca,'FontSize',28)
-saveas(gcf,'alpha_phase_plot.png')
+saveas(gcf,'./plots/alpha_phase_plot.png')
 
 
 
@@ -370,7 +371,7 @@ for m = 1:length(metrics)
     xlabel(labels{m})
     ylabel('Counts')
     legend('HF', 'Control')
-    saveas(gcf,[metrics{m} '_hist.png'])
+    saveas(gcf,['./plots/' metrics{m} '_hist.png'])
 
     % Plot
     ydata = [ctrlVal(:); HFval(:)];
@@ -399,7 +400,7 @@ for m = 1:length(metrics)
     %legend({'Control','HF'}, 'Location', 'best');
     hold off;
     set(gca,'FontSize',28)
-    saveas(gcf,['./plots-thesis/' metrics{m} '_box.png'])
+    saveas(gcf,['./plots/' metrics{m} '_box.png'])
 
 
 end

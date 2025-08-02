@@ -1,9 +1,8 @@
 function data = combineSamples(filesToRead,saveFileName)
 % Combine samples from individuals into struct data that has fields HR, CO,
 % BP, CoBF for each animal
-% TODO?: subsets random sample of CoBF and CO for
-% testing. Make size of this sample a function input
-addpath(genpath('/lustre/ogunnaike/users/2420/matlab_example/NZ-physiology-data/'))
+
+addpath(genpath('../'))
 num_subjects = length(filesToRead)
 meanRR = zeros(1,num_subjects);
 meanMAP = zeros(1,num_subjects);
@@ -32,16 +31,12 @@ for i = 19:19%length(filesToRead)
     end
     for k = 1:num_slices
         tic
-        % if k > 39
-        %     continue
-        % end
-        % extract time vector for CO, CoBF, BP (HR has different sampling rate)
         structName = vars{1};
         struct = eval(structName);
         try
             start(k) = 600000+num_points*(k-1);%struct.start;
         catch
-            start(k) = 1;%0;
+            start(k) = 1;
         end
         try
             interval(k) = struct.interval;
@@ -49,8 +44,8 @@ for i = 19:19%length(filesToRead)
             interval(k) = struct.resolution;
             disp('Time vector is for HR')
         end
-        stop(k) = 600000+num_points*k;%struct.length*interval(i); % points
-        timeRaw = start(k)*interval(k):interval(k):stop(k)*interval(k);%start(i):interval(i):stop(i); % seconds
+        stop(k) = 600000+num_points*k;
+        timeRaw = start(k)*interval(k):interval(k):stop(k)*interval(k); % seconds
         data(k,i).time = timeRaw;
         timeHRs = data(k,i).time./60./60;
 
@@ -85,12 +80,6 @@ for i = 19:19%length(filesToRead)
                 end
 
                 % Remove BP signals where probe has failed
-                % TODO: instead of removing BP signal, replace with local
-                % average. Usually not many points lost in BP signal and it
-                % helps keep alignment with RR interval. What do other
-                % literature sources do with noise in signal?
-               
-
                 % Adjust time vector to account for missing signal
                 if isnan(data(k,i).BP)
                     timeHRs_BP = NaN;
@@ -103,7 +92,6 @@ for i = 19:19%length(filesToRead)
                 plot(timeHRs_BP,data(k,i).BP)
                 xlabel('Time (hrs)')
                 ylabel({'Blood pressure'; '(mm Hg)'})
-                % timeHRs_BP(rm_idx) = [];
 
                 % Calculate moving average mean
                 M_BP = movmean(data(k,i).BP,kfkb);
@@ -142,13 +130,7 @@ for i = 19:19%length(filesToRead)
 
             elseif strcmp('HR',struct.title) || strcmp('HR(Peak)',struct.title) || strcmp('1.HR',struct.title)
                 tempRRtime = struct.times; % s
-                % disp('start (s)')%
-                % start(k)/1000
-                % disp('stop (s)')
-                % stop(k)/1000
-                % length(tempRRtime)
-                % min(tempRRtime)
-                % max(tempRRtime)
+
                 try
                     RRidx_slice = find(tempRRtime > start(k)/1000 & tempRRtime < stop(k)/1000);
                     data(k,i).RRtime = tempRRtime(RRidx_slice);%struct.times; % seconds (time heart beat occurs)
@@ -160,11 +142,6 @@ for i = 19:19%length(filesToRead)
                 ylabel('RR interval (s)')
 
                     if isempty(data(k,i).RRint)
-
-                        % length(data(k,i).RRtime)
-                        % mean(data(k,i).RRtime)
-                        % data(k,i).RRtime(1:10)
-                        % size(RRidx_slice)
                         sprintf('Sheep %d, slice %d is empty',i,k)
                     end
                 catch
@@ -181,7 +158,7 @@ for i = 19:19%length(filesToRead)
                 
                 
                 plotNameBySheep = ['./raw-data-plots/plot_raw_data_paced_' num2str(i) '_S' num2str(k) '.png'];
-                saveas(gcf,plotNameBySheep)%
+                saveas(gcf,plotNameBySheep)
 
                 plotNameBySheep = ['./raw-data-plots/plot_window_paced_' num2str(i) '_S' num2str(k) '.png'];
                 saveas(gcf,plotNameBySheep)
@@ -239,9 +216,7 @@ for i = 19:19%length(filesToRead)
             % Remove sections with no signal
             % CO
             M = movmean(data(k,i).CO,[0 k_avg],"Endpoints",'discard');
-            % if i == 3 % remove lost signal in animal 3
-            %     thresh = 3;
-            % else
+
                 thresh = -10;
             % end
             CO_idx_nosignal = find(M < thresh);
@@ -316,15 +291,7 @@ for i = 19:19%length(filesToRead)
             end
         end
     end
-    % figure;
-    % plot(timeHRs_BP*60*60,data(i).BP)
-    % hold on
-    % stairs(data(i).RRtime(1+shift:N+shift),data(i).MAP)
-    % plot(data(i).RRtime(1+shift:N+shift),90*ones(1,length(data(i).RRtime(1:N))),'ro')
-    % maxTime = max(data(i).RRtime(1+shift:N+shift));
-    % minTime = min(data(i).RRtime(1+shift:N+shift));
-    % xlim([minTime maxTime])
-    % saveas(gcf,'test_MAP_1.png')
+
 
 
     % stats on data
@@ -344,10 +311,6 @@ for i = 19:19%length(filesToRead)
         meanCO(i) = NaN;
     end
 
-        % Set up plot
-        % if k > 39
-        %     continue
-        % end
 
         tiledlayout(num_channels,1)
         plotName = ['./raw-data-plots/plot_filtered_data_paced' num2str(i) '.png'];
@@ -432,99 +395,6 @@ for i = 19:19%length(filesToRead)
 
         xlabel('Time (hrs)')
 
-        % saveas(gcf,plotName)
-    %
-    %     % TODO: make seasonality test its own function
-    %     % Test seasonality of data
-    %     quarter_length = round(length(data(i).CO)/4);
-    %     q1_idx = 1:1:quarter_length;
-    %     q2_idx = quarter_length:1:2*quarter_length;
-    %     q3_idx = 2*quarter_length:1:3*quarter_length;
-    %     q4_idx = 3*quarter_length:1:length(data(i).CO);
-    %     rng default
-    %     sample = randi([1 quarter_length],30,1); % randomly sample 30 values in each quarter%
-    %
-    %     % CoBF
-    %     if i ~= 10 % missing CoBF data in sample 10
-    %         sample_mat_CoBF = [data(i).CoBF(q1_idx(sample)),data(i).CoBF(q2_idx(sample)),data(i).CoBF(q3_idx(sample)),data(i).CoBF(q4_idx(sample))];
-    %     end
-    %     % CO
-    %     sample_mat_CO = [data(i).CO(q1_idx(sample)),data(i).CO(q2_idx(sample)),data(i).CO(q3_idx(sample)),data(i).CO(q4_idx(sample))];
-    %     disp('nan test')
-    %     any(isnan(sample_mat_CO))
-    %     any(isnan(q1_idx(sample)))
-    %
-    %
-    %     % BP (different length than CO and CoBF)
-    %     quarter_length_BP = round(length(data(i).BP)/4);
-    %     q1_idx_BP = 1:1:quarter_length_BP;
-    %     q2_idx_BP = quarter_length_BP:1:2*quarter_length_BP;
-    %     q3_idx_BP = 2*quarter_length_BP:1:3*quarter_length_BP;
-    %     q4_idx_BP = 3*quarter_length_BP:1:length(data(i).BP);
-    %     sample = randi([1 quarter_length_BP],30,1);
-    %     disp('ll')
-    %     size(q1_idx_BP(sample))
-    %     size(data(i).BP(q1_idx_BP(sample)))
-    %     sample_mat_BP = [data(i).BP(q1_idx_BP(sample)),data(i).BP(q2_idx_BP(sample)),data(i).BP(q3_idx_BP(sample)),data(i).BP(q4_idx_BP(sample))];
-    %     disp('mat size')
-    %     size(sample_mat_BP)
-    %
-    %     for jj = 1:3
-    %         for kk = jj+1:4
-    %             disp('variances')
-    %             disp(var(sample_mat_CoBF(:,jj)))
-    %             disp(var(sample_mat_CoBF(:,kk)))
-    %             disp('size')
-    %             disp(size(sample_mat_CoBF(:,jj)))
-    %             disp(size(sample_mat_CoBF(:,kk)))
-    %             disp('inf')
-    %             any(isinf(sample_mat_CO))
-    %             any(isinf(q1_idx_BP(sample)))
-    %             if i ~= 10 % missing CoBF data in sample 10
-    %                 sprintf('t-test for CoBF quarter %d and %d',jj,kk)
-    %                 [h,p] = ttest2(sample_mat_CoBF(:,jj),sample_mat_CoBF(:,kk))
-    %             end
-    %             sprintf('t-test for CO quarter %d and %d',jj,kk)
-    %             [h,p] = ttest2(sample_mat_CO(:,jj),sample_mat_CO(:,kk))
-    %             sprintf('t-test for BP quarter %d and %d',jj,kk)
-    %             [h,p] = ttest2(sample_mat_BP(:,jj),sample_mat_BP(:,kk))
-    %         end
-    %     end
-    %
-    % end
-    %
-    % save data
-
-    %
-    % % Test differences between HF and normal hemodynamics
-    % disp('HF meanRR')
-    % mean(meanRR(1:4))
-    % std(meanRR(1:4))
-    % disp('Control meanRR')
-    % mean(meanRR(5:10))
-    % std(meanRR(5:10))
-    % [h,p,ci,stats] = ttest2(meanRR(1:4),meanRR(5:10))
-    %
-    % meanBP
-    % mean(meanBP(1:4))
-    % std(meanBP(1:4))
-    % mean(meanBP(5:10))
-    % std(meanBP(5:10))
-    % [h,p,ci,stats] = ttest2(meanBP(1:4),meanBP(5:10))
-    %
-    % meanCoBF
-    % mean(meanCoBF(1:4))
-    % std(meanCoBF(1:4))
-    % mean(meanCoBF(5:10))
-    % std(meanCoBF(5:10))
-    % [h,p,ci,stats] = ttest2(meanCoBF(1:4),meanCoBF(5:10))
-    %
-    % meanCO
-    % mean(meanCO(1:4))
-    % std(meanCO(1:4))
-    % mean(meanCO(5:10))
-    % std(meanCO(5:10))
-    % [h,p,ci,stats] = ttest2(meanCO(1:4),meanCO(5:10))
     
     % save after each animal
     saveFileNameBySheep = [saveFileName '_' num2str(i) '.mat'];
