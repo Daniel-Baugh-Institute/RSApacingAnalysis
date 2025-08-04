@@ -18,11 +18,6 @@ e = stop; % sec
 times_BP = data(i,jj).timeHRs_BP*3600; % convert to s
 times_CO = data(i,jj).timeHRs_CO*3600; % convert to s
 
-% TODO: because negative CO values are removed from the data during
-% data cleaning, the number of points in CO and BP are not the same
-% (~ 20 points less in CO than BP). For now, I'm just going to
-% truncate the last 20 points of BP. Because we use times to
-% extract the points, this should be fine.
 
     % Extract BP and CO values for the beat
     try
@@ -43,12 +38,6 @@ times_CO = data(i,jj).timeHRs_CO*3600; % convert to s
             num_beats = num_beats_check;
         end
 
-
-
-        % figure;
-        % histogram(BP_vals)
-        % xlabel('BP')
-        % saveas(gcf,['hist_BP_sample' num2str(jj) '.png'])
     catch
         sprintf('Missing data, sheep %d, window %d',jj,i)
         BP_vals = NaN;
@@ -59,16 +48,6 @@ times_CO = data(i,jj).timeHRs_CO*3600; % convert to s
     % Calculate cumulative volume using cumulative integral
     if ~isempty(CO_vals) && numel(CO_vals) > 1
         vol_vals = cumtrapz(time_CO, CO_vals); % mL
-        % figure;
-        % histogram(vol_vals)
-        % xlabel('Vol')
-        % saveas(gcf,['hist_vol_sample' num2str(jj) '.png'])
-        % 
-        % figure;
-        % plot(time_CO,CO_vals)
-        % xlabel('time')
-        % ylabel('CO')
-        % saveas(gcf,['plot_CO_sample' num2str(jj) '.png'])
     else
         vol_vals = NaN;
         disp('Warning: CO vector was empty or only has one data point');
@@ -76,10 +55,6 @@ times_CO = data(i,jj).timeHRs_CO*3600; % convert to s
 
     % Compute Work per Beat using Pressure-Volume Loop
     sizediff = numel(BP_vals) - numel(CO_vals);
-    % size(times_BP)
-    % size(CO_vals)
-    % size(time_CO)
-    % size(vol_vals)
     if ~isempty(BP_vals) && numel(BP_vals) > 1 && ~any(isnan(vol_vals)) && ~any(isnan(BP_vals))
         work_per_beat_sample = trapz(vol_vals, BP_vals(1:end-sizediff))/num_beats; % mL * mmHg
     else
@@ -88,7 +63,6 @@ times_CO = data(i,jj).timeHRs_CO*3600; % convert to s
     end
 
     % Calculate Efficiency (Work/CoBF)
-    % NOTE: Is this the best measure of efficiency?
     try
         CoBF_vals = data(i,jj).CoBF(times_CO > s & times_CO < e)/60; % Convert to mL/s
     catch
@@ -97,10 +71,6 @@ times_CO = data(i,jj).timeHRs_CO*3600; % convert to s
     end
     if ~isempty(CoBF_vals) && numel(CoBF_vals) > 1 && ~any(isnan(CoBF_vals)) % for model ~isempty(CO_vals)
         % efficiency_per_beat_sample = work_per_beat_sample / trapz(time_CO, CoBF_vals); % units of trapz(time_CO, CoBF_vals) = mL
-        % disp('Vol vals size')
-        % size(vol_vals)
-        % vol_vals(end)
-        % trapz(time_CO, CoBF_vals)
         % efficiency_per_beat_sample = vol_vals(end) / trapz(time_CO, CoBF_vals); % 7/31/25: no grouping of data. Change so that efficiency = CO/CoBF
         efficiency_per_beat_sample = vol_vals(end) / work_per_beat_sample; % 7/31/25: higher efficiency for alt: CO/work
         CoBF_per_beat = trapz(time_CO, CoBF_vals) / num_beats; % for model: NaN

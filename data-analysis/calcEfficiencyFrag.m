@@ -39,12 +39,10 @@ for jj = 1:num_subjects
         acceleration_segment_boundaries_3plus(1:10,:)
         alternation_segment_boundaries_2plus(1:10,:)
         % Acceleration/deceleration windows
-        work_segment_accel = [];
-        efficiency_segment_accel = [];
-        CoBF_per_beat_accel = [];
         work_segment_accel = zeros(1,length(acceleration_segment_boundaries_3plus));
         efficiency_segment_accel = zeros(1,length(acceleration_segment_boundaries_3plus));
         CoBF_per_beat_accel = zeros(1,length(acceleration_segment_boundaries_3plus));
+        CO_per_beat_accel = zeros(1,length(acceleration_segment_boundaries_3plus));
 
         for m = 1:length(acceleration_segment_boundaries_3plus)
             % Convert to time stamps
@@ -52,17 +50,10 @@ for jj = 1:num_subjects
             stop = data(i,jj).RRtime(acceleration_segment_boundaries_3plus(m,2));
             
             num_beats_check = acceleration_segment_boundaries_3plus(m,2) - acceleration_segment_boundaries_3plus(m,1);
-            % disp('Negative CoBF')
-            % sum(data(i,jj).CoBF < 0)
-            % 
-            % disp('Negative CO')
-            % sum(data(i,jj).CO < 0)
-            % 
-            % disp('Negative BP')
-            % sum(data(i,jj).BP < 0)
+            
 
             % Calculate work and efficiency for acceleration windows
-            [work_temp, efficiency_temp, CoBF_per_beat_temp, ~, bp_max] = effCalc(data,jj,i,start,stop,num_beats_check);
+            [work_temp, efficiency_temp, CoBF_per_beat_temp, CO_per_beat_temp, bp_max] = effCalc(data,jj,i,start,stop,num_beats_check);
 
             if work_temp > 0
                 work_segment_accel(m) = work_temp;
@@ -79,6 +70,11 @@ for jj = 1:num_subjects
             else
                 CoBF_per_beat_accel(m) = NaN;
             end
+            if CO_per_beat_temp > 0
+                CO_per_beat_accel(m) = CO_per_beat_temp;
+            else
+                CO_per_beat_accel(m) = NaN;
+            end
 
         end
 
@@ -86,12 +82,10 @@ for jj = 1:num_subjects
 
 
         % Alternation windows
-        work_segment_alt = [];
-        efficiency_segment_alt = [];
-        CoBF_per_beat_alt = [];
         work_segment_alt = zeros(1,length(alternation_segment_boundaries_2plus));
         efficiency_segment_alt = zeros(1,length(alternation_segment_boundaries_2plus));
         CoBF_per_beat_alt = zeros(1,length(alternation_segment_boundaries_2plus));
+        CO_per_beat_alt = zeros(1,length(alternation_segment_boundaries_2plus));
         [rows, ~] = size(alternation_segment_boundaries_2plus);
         for m = 1:rows
             % Convert to time stamps
@@ -100,7 +94,7 @@ for jj = 1:num_subjects
             num_beats_check = alternation_segment_boundaries_2plus(m,2) - alternation_segment_boundaries_2plus(m,1);
 
             % Calculate work and efficiency for acceleration windows
-            [work_temp, efficiency_temp, CoBF_per_beat_temp, ~, bp_max] = effCalc(data,jj,i,start,stop,num_beats_check);
+            [work_temp, efficiency_temp, CoBF_per_beat_temp, CO_per_beat_temp, bp_max] = effCalc(data,jj,i,start,stop,num_beats_check);
 
             if work_temp > 0
                 work_segment_alt(m) = work_temp;
@@ -117,6 +111,12 @@ for jj = 1:num_subjects
                 CoBF_per_beat_alt(m) = CoBF_per_beat_temp;
             else
                 CoBF_per_beat_alt(m) = NaN;
+            end
+
+            if CO_per_beat_temp > 0
+                CO_per_beat_alt(m) = CO_per_beat_temp;
+            else
+                CO_per_beat_alt(m) = NaN;
             end
 
         end
@@ -249,6 +249,46 @@ for jj = 1:num_subjects
     set(gca,'FontSize',16)
     saveas(gcf,['./plots/CO-work_CoBF_accel-alt_box_' num2str(jj) '.png'])
     struct(i,jj).CoBF_per_beat = ydata;
+
+
+    % CO
+    disp('Comparing CO between alternating and acceleration/deceleration groups')
+    % remove nan
+    CO_segment_alt_clean = CO_per_beat_alt(~isnan(CO_per_beat_alt));
+    CO_segment_accel_clean = CO_per_beat_accel(~isnan(CO_per_beat_accel));
+    [h,p,ci,stats] = ttest2(CO_segment_alt_clean,CO_segment_accel_clean)
+
+    % Plot
+    ydata = [CO_segment_alt_clean(:); CO_segment_accel_clean(:)];
+    xgroupdata = [categorical(repmat({'Alternation'}, 1, length(CO_segment_alt_clean(:)))), ....
+    categorical(repmat({'Acceleration/deceleration'}, 1, length(CO_segment_accel_clean(:))))];
+
+    figure;
+    boxchart(ydata, 'GroupByColor', xgroupdata,'MarkerStyle','none');
+    hold on;
+
+    % Plot raw data points directly above their corresponding box plots
+    a = -0.2;
+    b = 0.2;
+    n = numel(CO_segment_alt_clean);
+    jitteralt = a + (b-a).*rand(n,1);
+    n = numel(CO_segment_accel_clean);
+    jitteraccel = a + (b-a).*rand(n,1);
+    xAccel = 1.25*ones(size(CO_segment_accel_clean(:))) + jitteraccel;
+    xAlt = 0.75 * ones(size(CO_segment_alt_clean(:))) + jitteralt;
+    scatter(xAlt, CO_segment_alt_clean(:), 'b', 'filled', 'MarkerFaceAlpha', 0.5);
+    scatter(xAccel, CO_segment_accel_clean(:), 'r', 'filled', 'MarkerFaceAlpha', 0.5);
+
+    ax = gca;
+    set(ax,'xticklabel',[])
+    ylabel('Segment CO (mL/s)');
+    legend({'Alternation','Acceleration/deceleration'}, 'Location', 'best');
+    title(['Sheep ' num2str(jj) ' | ' tit])
+    hold off;
+    set(gca,'FontSize',16)
+    saveas(gcf,['./plots/CO-work_CO_accel-alt_box_' num2str(jj) '.png'])
+    struct(i,jj).work = ydata;
+
 
     % 3D plot of CoBF, Efficiency, work
     % figure; 
